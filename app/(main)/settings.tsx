@@ -43,7 +43,7 @@ export default function SettingsScreen() {
 
       <SettingsTabs activeTab={activeTab} onChange={setActiveTab} />
 
-      <View className={activeTab === 'master' && isDesktop ? 'max-w-2xl' : 'max-w-md'}>
+      <View className={activeTab === 'master' && isDesktop ? 'w-full' : 'max-w-md'}>
         {activeTab === 'general' && (
           <View className="gap-6">
             <View>
