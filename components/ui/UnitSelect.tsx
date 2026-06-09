@@ -14,6 +14,7 @@ type UnitSelectProps = {
   className?: string;
   units?: UserUnit[];
   placeholder?: string;
+  compact?: boolean;
 };
 
 const FAMILY_ORDER: UnitFamily[] = ['mass', 'volume', 'count'];
@@ -35,31 +36,12 @@ export function UnitSelect({
   className,
   units: unitsProp,
   placeholder = 'Select unit',
+  compact = false,
 }: UnitSelectProps) {
-  const { data: fetchedUnits = [] } = useUserUnits();
+  const { data: fetchedUnits = [], isLoading } = useUserUnits();
   const [open, setOpen] = useState(false);
 
-  const units = useMemo(() => {
-    const source = unitsProp ?? fetchedUnits;
-    if (value && !source.some((unit) => unit.symbol === value)) {
-      return [
-        {
-          id: `legacy-${value}`,
-          user_id: '',
-          symbol: value,
-          label: value,
-          family: 'count' as const,
-          base_unit: 'each',
-          to_base_multiplier: 1,
-          sort_order: -1,
-          is_system: true,
-        },
-        ...source,
-      ];
-    }
-    return source;
-  }, [unitsProp, fetchedUnits, value]);
-
+  const units = unitsProp ?? fetchedUnits;
   const grouped = useMemo(() => groupUnits(units), [units]);
   const selected = units.find((unit) => unit.symbol === value);
 
@@ -67,6 +49,14 @@ export function UnitSelect({
     onChange(symbol);
     setOpen(false);
   };
+
+  const triggerLabel = selected
+    ? compact
+      ? selected.symbol
+      : selected.label
+        ? `${selected.symbol} — ${selected.label}`
+        : selected.symbol
+    : placeholder;
 
   return (
     <View className={className}>
@@ -77,18 +67,29 @@ export function UnitSelect({
       )}
       <Pressable
         onPress={() => setOpen(true)}
-        className="min-h-[48px] flex-row items-center justify-between rounded-button border border-border bg-surface px-4 dark:border-border-dark dark:bg-surface-dark-secondary">
-        <Text className={selected ? '' : 'text-text-secondary dark:text-text-dark-secondary'}>
-          {selected ? (selected.label ? `${selected.symbol} — ${selected.label}` : selected.symbol) : placeholder}
+        disabled={units.length === 0}
+        className={cn(
+          'flex-row items-center justify-between border border-border bg-surface dark:border-border-dark dark:bg-surface-dark-secondary',
+          compact ? 'min-h-[32px] rounded px-2 py-1' : 'min-h-[48px] rounded-button px-4',
+          units.length === 0 && 'opacity-60',
+        )}>
+        <Text
+          className={cn(
+            compact ? 'text-sm' : '',
+            selected ? '' : 'text-text-secondary dark:text-text-dark-secondary',
+          )}>
+          {isLoading ? 'Loading units...' : units.length === 0 ? 'No units in Master Units List' : triggerLabel}
         </Text>
-        <Text variant="caption">▼</Text>
+        <Text variant="caption" className={compact ? 'text-xs' : ''}>
+          ▼
+        </Text>
       </Pressable>
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <View className="flex-1 justify-end bg-black/40">
           <Pressable className="absolute inset-0" onPress={() => setOpen(false)} />
           <View className="max-h-[70%] rounded-t-card border border-border bg-surface p-4 dark:border-border-dark dark:bg-surface-dark">
-            <Text className="mb-4 text-lg font-semibold">Select unit</Text>
+            <Text className="mb-4 text-lg font-semibold">Master Units List</Text>
             <ScrollView keyboardShouldPersistTaps="handled">
               {FAMILY_ORDER.map((family) => {
                 const familyUnits = grouped[family];

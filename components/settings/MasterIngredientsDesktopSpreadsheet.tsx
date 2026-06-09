@@ -1,12 +1,14 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, TextInput, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
+import { UnitSelect } from '@/components/ui/UnitSelect';
 import { INVENTORY_CATEGORIES } from '@/constants/inventory';
 import { useIngredientMutations } from '@/hooks/useIngredients';
+import { useUserUnits } from '@/hooks/useUserUnits';
 import { cn } from '@/lib/cn';
-import { isKnownUnit } from '@/lib/units';
+import { isMasterUnitSymbol, resolveMasterUnitSymbol } from '@/lib/units';
 import type { Ingredient } from '@/types/database';
 
 type SortKey =
@@ -28,33 +30,72 @@ type NewRowDraft = {
   price_unit_of_measure: string;
 };
 
+const UNIT_KEYS = new Set<SortKey>(['unit_of_measure', 'price_unit_of_measure']);
+
 const columns: Array<{ key: SortKey; label: string; flex: number }> = [
   { key: 'name', label: 'Name', flex: 2.2 },
   { key: 'category', label: 'Category', flex: 1.4 },
-  { key: 'unit_of_measure', label: 'Unit', flex: 0.8 },
+  { key: 'unit_of_measure', label: 'Unit', flex: 1 },
   { key: 'price_per_unit', label: 'Price (AUD)', flex: 1 },
-  { key: 'price_unit_of_measure', label: 'Per', flex: 0.8 },
+  { key: 'price_unit_of_measure', label: 'Per', flex: 1 },
 ];
 
-const defaultNewRow = (): NewRowDraft => ({
-  name: '',
-  category: INVENTORY_CATEGORIES[0],
-  unit_of_measure: 'each',
-  price_per_unit: '0',
-  price_unit_of_measure: 'each',
-});
+function getDefaultUnit(masterUnits: Array<{ symbol: string }>): string {
+  return (
+    masterUnits.find((unit) => unit.symbol === 'each')?.symbol ??
+    masterUnits[0]?.symbol ??
+    ''
+  );
+}
+
+function createDefaultNewRow(masterUnits: Array<{ symbol: string }>): NewRowDraft {
+  const defaultUnit = getDefaultUnit(masterUnits);
+
+  return {
+    name: '',
+    category: INVENTORY_CATEGORIES[0],
+    unit_of_measure: defaultUnit,
+    price_per_unit: '0',
+    price_unit_of_measure: defaultUnit,
+  };
+}
 
 export function MasterIngredientsDesktopSpreadsheet({
   ingredients,
 }: MasterIngredientsDesktopSpreadsheetProps) {
+  const { data: masterUnits = [] } = useUserUnits();
   const [sortKey, setSortKey] = useState<SortKey>('name');
   const [sortAsc, setSortAsc] = useState(true);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [editingCell, setEditingCell] = useState<{ id: string; key: SortKey } | null>(null);
   const [draftValue, setDraftValue] = useState('');
-  const [newRow, setNewRow] = useState<NewRowDraft>(defaultNewRow);
+  const [newRow, setNewRow] = useState<NewRowDraft>(() => createDefaultNewRow([]));
+  const [newRowError, setNewRowError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const { create, update, remove } = useIngredientMutations();
+
+  useEffect(() => {
+    if (masterUnits.length === 0) {
+      return;
+    }
+
+    setNewRow((current) => {
+      if (current.name) {
+        return current;
+      }
+
+      const defaults = createDefaultNewRow(masterUnits);
+      return {
+        ...defaults,
+        unit_of_measure: isMasterUnitSymbol(current.unit_of_measure, masterUnits)
+          ? current.unit_of_measure
+          : defaults.unit_of_measure,
+        price_unit_of_measure: isMasterUnitSymbol(current.price_unit_of_measure, masterUnits)
+          ? current.price_unit_of_measure
+          : defaults.price_unit_of_measure,
+      };
+    });
+  }, [masterUnits]);
 
   const sortedIngredients = useMemo(() => {
     const copy = [...ingredients];
@@ -114,8 +155,8 @@ export function MasterIngredientsDesktopSpreadsheet({
     }
 
     if (key === 'unit_of_measure' || key === 'price_unit_of_measure') {
-      if (!isKnownUnit(value.trim())) {
-        return 'Choose a valid unit.';
+      if (!isMasterUnitSymbol(value, masterUnits)) {
+        return 'Choose a unit from the Master Units List.';
       }
       return null;
     }
@@ -128,6 +169,10 @@ export function MasterIngredientsDesktopSpreadsheet({
   };
 
   const startEditing = (ingredient: Ingredient, key: SortKey) => {
+    if (UNIT_KEYS.has(key)) {
+      return;
+    }
+
     const value =
       key === 'price_per_unit'
         ? String(ingredient.price_per_unit)
@@ -166,7 +211,7 @@ export function MasterIngredientsDesktopSpreadsheet({
     }
 
     try {
-      const input =
+      const input: Record<string, string | number> =
         editingCell.key === 'price_per_unit'
           ? { price_per_unit: Number(trimmed) }
           : editingCell.key === 'name'
@@ -182,11 +227,31 @@ export function MasterIngredientsDesktopSpreadsheet({
     }
   };
 
+  const handleUnitChange = async (
+    ingredient: Ingredient,
+    key: 'unit_of_measure' | 'price_unit_of_measure',
+    symbol: string,
+  ) => {
+    if (ingredient[key] === symbol) {
+      return;
+    }
+
+    try {
+      await update.mutateAsync({ id: ingredient.id, input: { [key]: symbol } });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Update failed.';
+      Alert.alert('Update failed', message);
+    }
+  };
+
   const commitNewRow = async () => {
     const name = newRow.name.trim();
     if (!name || isCreating) {
       return;
     }
+
+    const unitSymbol = resolveMasterUnitSymbol(newRow.unit_of_measure, masterUnits);
+    const priceUnitSymbol = resolveMasterUnitSymbol(newRow.price_unit_of_measure, masterUnits);
 
     const validationErrors = [
       validateField('name', name),
@@ -196,23 +261,28 @@ export function MasterIngredientsDesktopSpreadsheet({
       validateField('price_unit_of_measure', newRow.price_unit_of_measure),
     ].filter(Boolean);
 
-    if (validationErrors.length > 0) {
-      Alert.alert('Cannot add row', validationErrors[0] ?? 'Check the new row values.');
+    if (validationErrors.length > 0 || !unitSymbol || !priceUnitSymbol) {
+      const message =
+        validationErrors[0] ?? 'Choose units from the Master Units List in Settings.';
+      setNewRowError(message);
+      Alert.alert('Cannot add row', message);
       return;
     }
 
     try {
       setIsCreating(true);
+      setNewRowError(null);
       await create.mutateAsync({
         name,
         category: newRow.category.trim(),
-        unit_of_measure: newRow.unit_of_measure.trim(),
+        unit_of_measure: unitSymbol,
         price_per_unit: Number(newRow.price_per_unit),
-        price_unit_of_measure: newRow.price_unit_of_measure.trim(),
+        price_unit_of_measure: priceUnitSymbol,
       });
-      setNewRow(defaultNewRow());
+      setNewRow(createDefaultNewRow(masterUnits));
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Create failed.';
+      setNewRowError(message);
       Alert.alert('Create failed', message);
     } finally {
       setIsCreating(false);
@@ -220,13 +290,8 @@ export function MasterIngredientsDesktopSpreadsheet({
   };
 
   const updateNewRowField = (key: keyof NewRowDraft, value: string) => {
+    setNewRowError(null);
     setNewRow((current) => ({ ...current, [key]: value }));
-  };
-
-  const handleNewRowBlur = () => {
-    if (newRow.name.trim()) {
-      void commitNewRow();
-    }
   };
 
   const handleBulkDelete = () => {
@@ -267,7 +332,7 @@ export function MasterIngredientsDesktopSpreadsheet({
     );
   };
 
-  const renderCell = (
+  const renderTextCell = (
     ingredient: Ingredient,
     column: (typeof columns)[number],
     rawValue: string,
@@ -297,12 +362,26 @@ export function MasterIngredientsDesktopSpreadsheet({
     );
   };
 
-  const renderNewRowCell = (key: keyof NewRowDraft, flex: number, placeholder: string) => (
+  const renderUnitCell = (
+    ingredient: Ingredient,
+    key: 'unit_of_measure' | 'price_unit_of_measure',
+    flex: number,
+  ) => (
+    <View key={key} style={{ flex }} className="px-2">
+      <UnitSelect
+        compact
+        value={ingredient[key]}
+        units={masterUnits}
+        onChange={(symbol) => void handleUnitChange(ingredient, key, symbol)}
+      />
+    </View>
+  );
+
+  const renderNewRowTextCell = (key: keyof NewRowDraft, flex: number, placeholder: string) => (
     <View key={key} style={{ flex }} className="px-2">
       <TextInput
         value={newRow[key]}
         onChangeText={(value) => updateNewRowField(key, value)}
-        onBlur={handleNewRowBlur}
         onSubmitEditing={() => void commitNewRow()}
         placeholder={placeholder}
         placeholderTextColor="#9ca3af"
@@ -311,6 +390,25 @@ export function MasterIngredientsDesktopSpreadsheet({
       />
     </View>
   );
+
+  const renderNewRowUnitCell = (key: 'unit_of_measure' | 'price_unit_of_measure', flex: number) => (
+    <View key={key} style={{ flex }} className="px-2">
+      <UnitSelect
+        compact
+        value={newRow[key]}
+        units={masterUnits}
+        onChange={(symbol) => updateNewRowField(key, symbol)}
+      />
+    </View>
+  );
+
+  if (masterUnits.length === 0) {
+    return (
+      <Text variant="bodySecondary">
+        Add units in Settings → Master Units List before adding ingredients.
+      </Text>
+    );
+  }
 
   return (
     <View className="w-full gap-3">
@@ -355,12 +453,16 @@ export function MasterIngredientsDesktopSpreadsheet({
             </Pressable>
 
             {columns.map((column) => {
+              if (column.key === 'unit_of_measure' || column.key === 'price_unit_of_measure') {
+                return renderUnitCell(ingredient, column.key, column.flex);
+              }
+
               const rawValue =
                 column.key === 'price_per_unit'
                   ? String(ingredient.price_per_unit)
                   : String(ingredient[column.key] ?? '');
 
-              return renderCell(ingredient, column, rawValue);
+              return renderTextCell(ingredient, column, rawValue);
             })}
 
             <View className="w-16 px-2">
@@ -375,28 +477,31 @@ export function MasterIngredientsDesktopSpreadsheet({
           <View className="w-10 items-center">
             <Text variant="caption">+</Text>
           </View>
-          {renderNewRowCell('name', columns[0].flex, 'New ingredient...')}
-          {renderNewRowCell('category', columns[1].flex, 'Category')}
-          {renderNewRowCell('unit_of_measure', columns[2].flex, 'Unit')}
-          {renderNewRowCell('price_per_unit', columns[3].flex, '0')}
-          {renderNewRowCell('price_unit_of_measure', columns[4].flex, 'each')}
-          <View className="w-16 px-2">
-            <Pressable onPress={() => void commitNewRow()} disabled={!newRow.name.trim() || isCreating}>
-              <Text
-                className={cn(
-                  'text-sm',
-                  newRow.name.trim() ? 'text-brand dark:text-brand-dark' : 'text-text-secondary',
-                )}>
-                {isCreating ? '...' : 'Add'}
-              </Text>
-            </Pressable>
+          {renderNewRowTextCell('name', columns[0].flex, 'New ingredient...')}
+          {renderNewRowTextCell('category', columns[1].flex, 'Category')}
+          {renderNewRowUnitCell('unit_of_measure', columns[2].flex)}
+          {renderNewRowTextCell('price_per_unit', columns[3].flex, '0')}
+          {renderNewRowUnitCell('price_unit_of_measure', columns[4].flex)}
+          <View className="w-20 px-1">
+            <Button
+              label={isCreating ? 'Adding...' : 'Add'}
+              variant="secondary"
+              disabled={!newRow.name.trim() || isCreating}
+              onPress={() => void commitNewRow()}
+              className="min-h-[36px] px-2 py-1"
+              textClassName="text-sm"
+            />
           </View>
         </View>
       </View>
 
+      {newRowError ? (
+        <Text className="text-sm text-status-danger">{newRowError}</Text>
+      ) : null}
+
       <Text variant="caption">
-        Click any cell to edit. Type in the bottom row and press Enter or click Add to create a new
-        ingredient.
+        Click any cell to edit. Unit columns use the Master Units List. Add a new ingredient in the
+        bottom row.
       </Text>
     </View>
   );

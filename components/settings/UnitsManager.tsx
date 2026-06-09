@@ -4,6 +4,7 @@ import { Alert, Pressable, View } from 'react-native';
 import { Button } from '@/components/ui/Button';
 import { OptionSelect } from '@/components/ui/Form';
 import { Input } from '@/components/ui/Input';
+import { UnitSelect } from '@/components/ui/UnitSelect';
 import { Text } from '@/components/ui/Text';
 import { UNIT_FAMILY_LABELS, type UnitFamily } from '@/constants/inventory';
 import { useUserUnitMutations, useUserUnits } from '@/hooks/useUserUnits';
@@ -147,10 +148,10 @@ export function UnitsManager() {
 
   return (
     <View className="gap-4">
-      <Text variant="label">Units & conversions</Text>
+      <Text variant="label">Master Units List</Text>
       <Text variant="bodySecondary">
-        Australian defaults are provided for mass, volume, and count. Add custom units and set how
-        they convert (e.g. 1 box = 6 each).
+        All unit fields across the app use this list. Australian defaults are provided for mass,
+        volume, and count. Add custom units and set how they convert (e.g. 1 box = 6 each).
       </Text>
 
       {FAMILY_ORDER.map((familyKey) => {
@@ -254,7 +255,7 @@ export function UnitsManager() {
             keyboardType="decimal-pad"
             className="w-24"
           />
-          <OptionSelect value={baseUnit} options={baseUnitOptions} onChange={setBaseUnit} />
+          <UnitSelect value={baseUnit} onChange={setBaseUnit} units={units} className="min-w-[120px]" />
         </View>
 
         <Button label="Add unit" onPress={() => void handleCreate()} />

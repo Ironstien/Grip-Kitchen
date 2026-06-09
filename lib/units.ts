@@ -60,10 +60,51 @@ function getAllDefinitions(): UnitDefinition[] {
 export function getUnitDefinition(unit: string): UnitDefinition | null {
   const normalized = normalizeUnit(unit);
   return (
-    getAllDefinitions().find((definition) =>
-      definition.aliases.some((alias) => alias === normalized),
+    getAllDefinitions().find(
+      (definition) =>
+        normalizeUnit(definition.symbol) === normalized ||
+        definition.aliases.some((alias) => alias === normalized),
     ) ?? null
   );
+}
+
+export function resolveUnitSymbol(unit: string): string | null {
+  const trimmed = unit.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const definition = getUnitDefinition(trimmed);
+  if (definition) {
+    return definition.symbol;
+  }
+
+  const normalized = normalizeUnit(trimmed);
+  const registered = registeredUserUnits.find(
+    (entry) => normalizeUnit(entry.symbol) === normalized,
+  );
+
+  return registered?.symbol ?? null;
+}
+
+export function resolveMasterUnitSymbol(
+  unit: string,
+  masterUnits: Array<{ symbol: string }>,
+): string | null {
+  const normalized = normalizeUnit(unit);
+  if (!normalized) {
+    return null;
+  }
+
+  const match = masterUnits.find((entry) => normalizeUnit(entry.symbol) === normalized);
+  return match?.symbol ?? null;
+}
+
+export function isMasterUnitSymbol(
+  unit: string,
+  masterUnits: Array<{ symbol: string }>,
+): boolean {
+  return resolveMasterUnitSymbol(unit, masterUnits) !== null;
 }
 
 export function getRegisteredUnitSymbols(): string[] {

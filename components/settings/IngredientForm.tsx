@@ -8,7 +8,8 @@ import { UnitSelect } from '@/components/ui/UnitSelect';
 import { Text } from '@/components/ui/Text';
 import { INVENTORY_CATEGORIES } from '@/constants/inventory';
 import { useIngredientMutations } from '@/hooks/useIngredients';
-import { isKnownUnit } from '@/lib/units';
+import { useUserUnits } from '@/hooks/useUserUnits';
+import { isMasterUnitSymbol } from '@/lib/units';
 import type { Ingredient } from '@/types/database';
 
 type IngredientFormProps = {
@@ -19,6 +20,7 @@ type IngredientFormProps = {
 
 export function IngredientForm({ ingredient, onSaved, onCancel }: IngredientFormProps) {
   const { create, update, remove } = useIngredientMutations();
+  const { data: masterUnits = [] } = useUserUnits();
 
   const [name, setName] = useState(ingredient?.name ?? '');
   const [category, setCategory] = useState(ingredient?.category ?? INVENTORY_CATEGORIES[0]);
@@ -41,13 +43,13 @@ export function IngredientForm({ ingredient, onSaved, onCancel }: IngredientForm
       return false;
     }
 
-    if (!isKnownUnit(unit)) {
-      Alert.alert('Unknown unit', 'Choose a unit from the list.');
+    if (!isMasterUnitSymbol(unit, masterUnits)) {
+      Alert.alert('Unknown unit', 'Choose a unit from the Master Units List.');
       return false;
     }
 
-    if (!isKnownUnit(priceUnit)) {
-      Alert.alert('Unknown price unit', 'Choose a price unit from the list.');
+    if (!isMasterUnitSymbol(priceUnit, masterUnits)) {
+      Alert.alert('Unknown price unit', 'Choose a unit from the Master Units List.');
       return false;
     }
 

@@ -37,13 +37,16 @@ export default function SettingsScreen() {
       <View className="mb-6">
         <Heading level={isDesktop ? 1 : 2}>Settings</Heading>
         <Text variant="bodySecondary" className="mt-1">
-          Manage your master ingredient list, units, locations, and preferences.
+          Manage your master ingredient list, master units list, locations, and preferences.
         </Text>
       </View>
 
       <SettingsTabs activeTab={activeTab} onChange={setActiveTab} />
 
-      <View className={activeTab === 'master' && isDesktop ? 'w-full' : 'max-w-md'}>
+      <View
+        className={
+          (activeTab === 'master' || activeTab === 'units') && isDesktop ? 'w-full' : 'max-w-md'
+        }>
         {activeTab === 'general' && (
           <View className="gap-6">
             <View>

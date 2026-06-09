@@ -14,7 +14,7 @@ type SettingsTabsProps = {
 const TABS: Array<{ id: SettingsTab; label: string }> = [
   { id: 'general', label: 'General' },
   { id: 'master', label: 'Master list' },
-  { id: 'units', label: 'Units' },
+  { id: 'units', label: 'Master Units List' },
   { id: 'locations', label: 'Locations' },
 ];
 
