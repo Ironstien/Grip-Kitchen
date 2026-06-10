@@ -1,4 +1,5 @@
-import { tables } from '@/lib/database';
+import { ensureUserProfile, tables } from '@/lib/database';
+import { toError } from '@/lib/errors';
 import { supabase } from '@/lib/supabase';
 import type { Ingredient } from '@/types/database';
 
@@ -19,7 +20,7 @@ export async function fetchIngredients(): Promise<Ingredient[]> {
     .order('name', { ascending: true });
 
   if (error) {
-    throw error;
+    throw toError(error, 'Could not load ingredients.');
   }
 
   return data ?? [];
@@ -48,6 +49,8 @@ export async function createIngredient(input: IngredientInsertInput): Promise<In
     throw new Error('Not authenticated');
   }
 
+  await ensureUserProfile();
+
   const { data, error } = await supabase
     .from(tables.ingredients)
     .insert({
@@ -62,7 +65,7 @@ export async function createIngredient(input: IngredientInsertInput): Promise<In
     .single();
 
   if (error) {
-    throw error;
+    throw toError(error, 'Could not create ingredient.');
   }
 
   return data;

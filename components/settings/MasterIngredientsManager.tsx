@@ -8,12 +8,13 @@ import { Input } from '@/components/ui/Input';
 import { Text } from '@/components/ui/Text';
 import { useIngredients } from '@/hooks/useIngredients';
 import { useResponsive } from '@/hooks/useResponsive';
+import { formatErrorMessage } from '@/lib/errors';
 import { formatPricePerUnit } from '@/lib/price';
 import type { Ingredient } from '@/types/database';
 
 export function MasterIngredientsManager() {
   const { isDesktop } = useResponsive();
-  const { data: ingredients = [], isLoading } = useIngredients();
+  const { data: ingredients = [], isLoading, isError, error } = useIngredients();
   const [search, setSearch] = useState('');
   const [editingIngredient, setEditingIngredient] = useState<Ingredient | null | undefined>(
     undefined,
@@ -36,6 +37,14 @@ export function MasterIngredientsManager() {
 
   if (isLoading) {
     return <Text variant="bodySecondary">Loading master list...</Text>;
+  }
+
+  if (isError) {
+    return (
+      <Text className="text-status-danger">
+        {formatErrorMessage(error, 'Could not load ingredients.')}
+      </Text>
+    );
   }
 
   return (

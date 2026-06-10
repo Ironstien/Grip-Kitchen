@@ -8,6 +8,7 @@ import { INVENTORY_CATEGORIES } from '@/constants/inventory';
 import { useIngredientMutations } from '@/hooks/useIngredients';
 import { useUserUnits } from '@/hooks/useUserUnits';
 import { cn } from '@/lib/cn';
+import { formatErrorMessage } from '@/lib/errors';
 import { isMasterUnitSymbol, resolveMasterUnitSymbol } from '@/lib/units';
 import type { Ingredient } from '@/types/database';
 
@@ -220,7 +221,7 @@ export function MasterIngredientsDesktopSpreadsheet({
 
       await update.mutateAsync({ id: ingredient.id, input });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Update failed.';
+      const message = formatErrorMessage(error, 'Update failed.');
       Alert.alert('Update failed', message);
     } finally {
       setEditingCell(null);
@@ -239,7 +240,7 @@ export function MasterIngredientsDesktopSpreadsheet({
     try {
       await update.mutateAsync({ id: ingredient.id, input: { [key]: symbol } });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Update failed.';
+      const message = formatErrorMessage(error, 'Update failed.');
       Alert.alert('Update failed', message);
     }
   };
@@ -281,7 +282,7 @@ export function MasterIngredientsDesktopSpreadsheet({
       });
       setNewRow(createDefaultNewRow(masterUnits));
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Create failed.';
+      const message = formatErrorMessage(error, 'Could not create ingredient.');
       setNewRowError(message);
       Alert.alert('Create failed', message);
     } finally {
