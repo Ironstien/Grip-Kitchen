@@ -43,6 +43,7 @@ Run these in order in **SQL Editor**:
 2. `supabase/migrations/004_user_units.sql` — custom units (skip if `user_units already exists`)
 3. `supabase/migrations/005_ingredients_master_list.sql` — master ingredient catalog (or `006_fix_ingredients_master_list.sql` if 005 failed)
 4. `supabase/migrations/007_user_categories.sql` — master category list
+5. `supabase/migrations/008_ingredient_purchase_conversions.sql` — purchase format, display names, conversions, recipe units
 
 **If 005 fails** (e.g. `price_unit_of_measure does not exist`, or a partial run), run:
 

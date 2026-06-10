@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/Card';
 import { Text } from '@/components/ui/Text';
 import { useInventoryMutations } from '@/hooks/useInventory';
 import { formatExpirationDate, getExpiryLabel, getExpiryStatus } from '@/lib/inventory/expiry';
+import { getIngredientDisplayName } from '@/lib/ingredients';
 import type { PantryItem } from '@/lib/inventory/pantry';
 import { formatQuantity } from '@/lib/units';
 import { cn } from '@/lib/cn';
@@ -61,9 +62,9 @@ export function PantryMobileList({ items, locations, onAdjustStock }: PantryMobi
             <Pressable onPress={() => onAdjustStock(item)} className="gap-2">
               <View className="flex-row items-start justify-between gap-3">
                 <View className="flex-1">
-                  <Text className="text-lg font-semibold">{item.name}</Text>
+                  <Text className="text-lg font-semibold">{getIngredientDisplayName(item)}</Text>
                   <Text variant="bodySecondary">
-                    {formatQuantity(item.quantity, item.unit_of_measure)} · {item.category}
+                    {formatQuantity(item.quantity, item.stock_unit)} · {item.category}
                   </Text>
                   <Text variant="caption" className="mt-1">
                     {locationName}

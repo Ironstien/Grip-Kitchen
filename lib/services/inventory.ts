@@ -8,7 +8,12 @@ const INVENTORY_SELECT = `
   ingredient:ingredient_id (
     id,
     name,
+    display_name,
     category,
+    stock_unit,
+    purchase_price,
+    purchase_qty,
+    purchase_unit,
     unit_of_measure,
     price_per_unit,
     price_unit_of_measure

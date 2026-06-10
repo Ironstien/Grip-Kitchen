@@ -9,6 +9,7 @@ import { Text } from '@/components/ui/Text';
 import { useIngredients } from '@/hooks/useIngredients';
 import { useInventoryMutations } from '@/hooks/useInventory';
 import { useStorageLocations } from '@/hooks/useStorageLocations';
+import { getIngredientDisplayName } from '@/lib/ingredients';
 import type { PantryItem } from '@/lib/inventory/pantry';
 
 type PantryStockFormProps = {
@@ -64,7 +65,11 @@ export function PantryStockForm({ item, onSaved, onCancel, dense = false }: Pant
   }, [ingredientId, ingredients, item]);
 
   const ingredientOptions = useMemo(
-    () => ingredients.map((ingredient) => ({ id: ingredient.id, name: ingredient.name })),
+    () =>
+      ingredients.map((ingredient) => ({
+        id: ingredient.id,
+        name: getIngredientDisplayName(ingredient),
+      })),
     [ingredients],
   );
 
@@ -158,9 +163,10 @@ export function PantryStockForm({ item, onSaved, onCancel, dense = false }: Pant
       keyboardShouldPersistTaps="handled">
       {item ? (
         <View className="rounded-card border border-border px-4 py-3 dark:border-border-dark">
-          <Text className="text-lg font-semibold">{item.name}</Text>
+          <Text className="text-lg font-semibold">{getIngredientDisplayName(item)}</Text>
+          <Text variant="bodySecondary">{item.name}</Text>
           <Text variant="bodySecondary">
-            {item.category} · {item.unit_of_measure}
+            {item.category} · {item.stock_unit}
           </Text>
           <Text variant="caption" className="mt-1">
             Edit ingredient details in Settings → Master Ingredient List.
@@ -182,11 +188,11 @@ export function PantryStockForm({ item, onSaved, onCancel, dense = false }: Pant
 
       {selectedIngredient && !item && (
         <Text variant="caption">
-          Unit: {selectedIngredient.unit_of_measure} · {selectedIngredient.category}
+          Stock unit: {selectedIngredient.stock_unit} · {selectedIngredient.category}
         </Text>
       )}
 
-      <FormField label={`Quantity${selectedIngredient ? ` (${selectedIngredient.unit_of_measure})` : ''}`}>
+      <FormField label={`Quantity${selectedIngredient ? ` (${selectedIngredient.stock_unit})` : ''}`}>
         <Input value={quantity} onChangeText={setQuantity} keyboardType="decimal-pad" />
       </FormField>
 

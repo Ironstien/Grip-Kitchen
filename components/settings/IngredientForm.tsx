@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Alert, ScrollView, View } from 'react-native';
 
+import { IngredientConversionsEditor } from '@/components/settings/IngredientConversionsEditor';
 import { CategorySelect } from '@/components/ui/CategorySelect';
 import { FormField } from '@/components/ui/Form';
 import { Button } from '@/components/ui/Button';
@@ -11,11 +12,12 @@ import { useIngredientMutations } from '@/hooks/useIngredients';
 import { useUserCategories } from '@/hooks/useUserCategories';
 import { useUserUnits } from '@/hooks/useUserUnits';
 import { isMasterCategoryName } from '@/lib/categories';
+import { formatPurchaseSummary } from '@/lib/ingredients';
 import { isMasterUnitSymbol } from '@/lib/units';
-import type { Ingredient } from '@/types/database';
+import type { IngredientWithConversions } from '@/types/database';
 
 type IngredientFormProps = {
-  ingredient?: Ingredient | null;
+  ingredient?: IngredientWithConversions | null;
   onSaved: () => void;
   onCancel: () => void;
 };
@@ -26,12 +28,12 @@ export function IngredientForm({ ingredient, onSaved, onCancel }: IngredientForm
   const { data: masterCategories = [] } = useUserCategories();
 
   const [name, setName] = useState(ingredient?.name ?? '');
+  const [displayName, setDisplayName] = useState(ingredient?.display_name ?? '');
   const [category, setCategory] = useState(ingredient?.category ?? masterCategories[0]?.name ?? '');
-  const [unit, setUnit] = useState(ingredient?.unit_of_measure ?? 'each');
-  const [pricePerUnit, setPricePerUnit] = useState(String(ingredient?.price_per_unit ?? 0));
-  const [priceUnit, setPriceUnit] = useState(
-    ingredient?.price_unit_of_measure ?? ingredient?.unit_of_measure ?? 'each',
-  );
+  const [purchasePrice, setPurchasePrice] = useState(String(ingredient?.purchase_price ?? 0));
+  const [purchaseQty, setPurchaseQty] = useState(String(ingredient?.purchase_qty ?? 1));
+  const [purchaseUnit, setPurchaseUnit] = useState(ingredient?.purchase_unit ?? 'pack');
+  const [stockUnit, setStockUnit] = useState(ingredient?.stock_unit ?? ingredient?.purchase_unit ?? 'pack');
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -46,13 +48,20 @@ export function IngredientForm({ ingredient, onSaved, onCancel }: IngredientForm
 
   const validate = () => {
     if (!name.trim()) {
-      Alert.alert('Missing name', 'Enter an ingredient name.');
+      Alert.alert('Missing name', 'Enter the store product name.');
       return false;
     }
 
-    const parsedPrice = Number(pricePerUnit);
+    const parsedPrice = Number(purchasePrice);
+    const parsedQty = Number(purchaseQty);
+
     if (Number.isNaN(parsedPrice) || parsedPrice < 0) {
-      Alert.alert('Invalid price', 'Enter a valid price amount.');
+      Alert.alert('Invalid price', 'Enter a valid purchase price.');
+      return false;
+    }
+
+    if (Number.isNaN(parsedQty) || parsedQty <= 0) {
+      Alert.alert('Invalid quantity', 'Enter a purchase quantity greater than zero.');
       return false;
     }
 
@@ -61,13 +70,13 @@ export function IngredientForm({ ingredient, onSaved, onCancel }: IngredientForm
       return false;
     }
 
-    if (!isMasterUnitSymbol(unit, masterUnits)) {
-      Alert.alert('Unknown unit', 'Choose a unit from the Master Units List.');
+    if (!isMasterUnitSymbol(purchaseUnit, masterUnits)) {
+      Alert.alert('Unknown unit', 'Choose a purchase unit from the Master Units List.');
       return false;
     }
 
-    if (!isMasterUnitSymbol(priceUnit, masterUnits)) {
-      Alert.alert('Unknown price unit', 'Choose a unit from the Master Units List.');
+    if (!isMasterUnitSymbol(stockUnit, masterUnits)) {
+      Alert.alert('Unknown stock unit', 'Choose a stock unit from the Master Units List.');
       return false;
     }
 
@@ -81,10 +90,12 @@ export function IngredientForm({ ingredient, onSaved, onCancel }: IngredientForm
 
     const payload = {
       name: name.trim(),
+      display_name: displayName.trim(),
       category,
-      unit_of_measure: unit,
-      price_per_unit: Number(pricePerUnit),
-      price_unit_of_measure: priceUnit,
+      purchase_price: Number(purchasePrice),
+      purchase_qty: Number(purchaseQty),
+      purchase_unit: purchaseUnit,
+      stock_unit: stockUnit,
     };
 
     try {
@@ -126,31 +137,80 @@ export function IngredientForm({ ingredient, onSaved, onCancel }: IngredientForm
     );
   };
 
+  const previewSummary =
+    Number(purchaseQty) > 0
+      ? formatPurchaseSummary({
+          purchase_price: Number(purchasePrice) || 0,
+          purchase_qty: Number(purchaseQty) || 1,
+          purchase_unit: purchaseUnit,
+        })
+      : null;
+
   return (
     <ScrollView contentContainerClassName="gap-4 pb-6" keyboardShouldPersistTaps="handled">
-      <FormField label="Name">
-        <Input value={name} onChangeText={setName} placeholder="e.g. Plain flour" />
+      <FormField label="Store name">
+        <Input
+          value={name}
+          onChangeText={setName}
+          placeholder="Exact name from Woolworths receipt"
+        />
+      </FormField>
+
+      <FormField label="Display name">
+        <Input
+          value={displayName}
+          onChangeText={setDisplayName}
+          placeholder="Short name shown in recipes"
+        />
       </FormField>
 
       <CategorySelect label="Category" value={category} onChange={setCategory} />
 
-      <UnitSelect label="Default unit" value={unit} onChange={setUnit} />
-
       <View className="gap-2">
-        <Text variant="label">Price per unit (AUD)</Text>
-        <View className="flex-row items-center gap-3">
-          <View className="flex-1">
-            <Input
-              value={pricePerUnit}
-              onChangeText={setPricePerUnit}
-              keyboardType="decimal-pad"
-              placeholder="e.g. 5"
-            />
-          </View>
-          <Text variant="bodySecondary">per</Text>
-          <UnitSelect value={priceUnit} onChange={setPriceUnit} className="flex-1" />
-        </View>
+        <Text variant="label">Purchase price (AUD)</Text>
+        <Input
+          value={purchasePrice}
+          onChangeText={setPurchasePrice}
+          keyboardType="decimal-pad"
+          placeholder="e.g. 6.00"
+        />
       </View>
+
+      <View className="flex-row gap-3">
+        <FormField label="Purchase QTY" className="flex-1">
+          <Input
+            value={purchaseQty}
+            onChangeText={setPurchaseQty}
+            keyboardType="decimal-pad"
+            placeholder="e.g. 2"
+          />
+        </FormField>
+        <FormField label="Purchase unit" className="flex-1">
+          <UnitSelect value={purchaseUnit} onChange={setPurchaseUnit} />
+        </FormField>
+      </View>
+
+      <FormField label="Stock unit (pantry)">
+        <UnitSelect value={stockUnit} onChange={setStockUnit} />
+        <Text variant="caption" className="mt-1">
+          How you count this on the shelf — usually pack, bottle, or each.
+        </Text>
+      </FormField>
+
+      {previewSummary ? (
+        <Text variant="bodySecondary">{previewSummary}</Text>
+      ) : null}
+
+      {ingredient ? (
+        <View className="gap-2 border-t border-border pt-4 dark:border-border-dark">
+          <Text variant="label">Unit conversions</Text>
+          <IngredientConversionsEditor ingredient={ingredient} />
+        </View>
+      ) : (
+        <Text variant="caption">
+          Save the ingredient first, then add conversion rules (e.g. 1 pack = 12 slices).
+        </Text>
+      )}
 
       <View className="mt-2 flex-row gap-3">
         <Button label="Cancel" variant="ghost" onPress={onCancel} className="flex-1" />
@@ -162,9 +222,9 @@ export function IngredientForm({ ingredient, onSaved, onCancel }: IngredientForm
         />
       </View>
 
-      {ingredient && (
+      {ingredient ? (
         <Button label="Delete ingredient" variant="ghost" onPress={handleDelete} className="mt-2" />
-      )}
+      ) : null}
     </ScrollView>
   );
 }

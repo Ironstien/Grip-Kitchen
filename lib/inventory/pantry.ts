@@ -2,16 +2,26 @@ import type { InventoryItem } from '@/types/database';
 
 export type PantryItem = InventoryItem & {
   name: string;
+  display_name: string;
   category: string;
+  stock_unit: string;
   unit_of_measure: string;
+  purchase_price: number;
+  purchase_qty: number;
+  purchase_unit: string;
   price_per_unit: number;
   price_unit_of_measure: string;
 };
 
 type IngredientSnapshot = {
   name: string;
+  display_name: string;
   category: string;
+  stock_unit: string;
   unit_of_measure: string;
+  purchase_price: number;
+  purchase_qty: number;
+  purchase_unit: string;
   price_per_unit: number;
   price_unit_of_measure: string;
 };
@@ -40,8 +50,13 @@ export function mapPantryItem(row: InventoryRowWithIngredient): PantryItem {
   return {
     ...row,
     name: ingredient.name,
+    display_name: ingredient.display_name,
     category: ingredient.category,
-    unit_of_measure: ingredient.unit_of_measure,
+    stock_unit: ingredient.stock_unit,
+    unit_of_measure: ingredient.stock_unit,
+    purchase_price: ingredient.purchase_price,
+    purchase_qty: ingredient.purchase_qty,
+    purchase_unit: ingredient.purchase_unit,
     price_per_unit: ingredient.price_per_unit,
     price_unit_of_measure: ingredient.price_unit_of_measure,
   };
@@ -50,7 +65,6 @@ export function mapPantryItem(row: InventoryRowWithIngredient): PantryItem {
 export function getTotalStockQuantity(
   ingredientId: string,
   pantryItems: PantryItem[],
-  unit: string,
 ): number {
   return pantryItems
     .filter((item) => item.ingredient_id === ingredientId)

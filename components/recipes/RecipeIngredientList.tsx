@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Text } from '@/components/ui/Text';
 import { useInventory } from '@/hooks/useInventory';
 import { calculateRecipeCosts, formatAud } from '@/lib/cost';
+import { getIngredientDisplayName } from '@/lib/ingredients';
 import { scaleIngredientQuantities } from '@/lib/recipeScaling';
 import { isIngredientInStock } from '@/lib/recipes/stockCheck';
 import { formatQuantity } from '@/lib/units';
@@ -44,6 +45,7 @@ export function RecipeIngredientList({ recipe, targetServings }: RecipeIngredien
         scaledIngredients.map((entry) => ({
           ingredient_id: entry.ingredient_id,
           required_quantity: entry.required_quantity,
+          required_unit: entry.required_unit,
           scaled_quantity: entry.scaled_quantity,
           stock_quantity: stockByIngredient.get(entry.ingredient_id) ?? 0,
           ingredient: entry.ingredient,
@@ -58,12 +60,16 @@ export function RecipeIngredientList({ recipe, targetServings }: RecipeIngredien
       {scaledIngredients.map((entry) => {
         const catalog = entry.ingredient;
         const stockQuantity = stockByIngredient.get(entry.ingredient_id) ?? 0;
+        const recipeUnit = entry.required_unit || catalog?.stock_unit || 'each';
+        const conversions = catalog?.ingredient_conversions ?? [];
+
         const inStock = catalog
           ? isIngredientInStock(
               stockQuantity,
-              catalog.unit_of_measure,
+              catalog.stock_unit,
               entry.scaled_quantity,
-              catalog.unit_of_measure,
+              recipeUnit,
+              conversions,
             )
           : false;
 
@@ -74,10 +80,17 @@ export function RecipeIngredientList({ recipe, targetServings }: RecipeIngredien
             key={entry.id}
             className="flex-row items-center justify-between gap-3 rounded-card border border-border px-4 py-3 dark:border-border-dark">
             <View className="flex-1">
-              <Text className="font-medium">{catalog?.name ?? 'Missing ingredient link'}</Text>
-              <Text variant="bodySecondary">
-                {formatQuantity(entry.scaled_quantity, catalog?.unit_of_measure ?? 'each')}
+              <Text className="font-medium">
+                {catalog ? getIngredientDisplayName(catalog) : 'Missing ingredient link'}
               </Text>
+              <Text variant="bodySecondary">
+                {formatQuantity(entry.scaled_quantity, recipeUnit)}
+              </Text>
+              {!costLine?.converted ? (
+                <Text variant="caption" className="text-status-danger">
+                  No conversion rule for cost
+                </Text>
+              ) : null}
             </View>
             <View className="items-end gap-1">
               <Badge label={inStock ? 'In stock' : 'Missing'} status={inStock ? 'success' : 'danger'} />

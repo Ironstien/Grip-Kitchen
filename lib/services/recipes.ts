@@ -1,10 +1,11 @@
 import { supabase } from '@/lib/supabase';
 import { tables } from '@/lib/database';
-import type { Ingredient, Recipe, RecipeIngredient } from '@/types/database';
+import type { IngredientConversion, IngredientWithConversions, Recipe, RecipeIngredient } from '@/types/database';
 
 export type RecipeIngredientInput = {
   ingredient_id: string;
   required_quantity: number;
+  required_unit: string;
 };
 
 export type RecipeInsertInput = {
@@ -21,13 +22,27 @@ export type RecipeUpdateInput = Partial<Omit<RecipeInsertInput, 'ingredients'>> 
   ingredients?: RecipeIngredientInput[];
 };
 
+export type RecipeIngredientCatalog = Pick<
+  IngredientWithConversions,
+  | 'id'
+  | 'name'
+  | 'display_name'
+  | 'stock_unit'
+  | 'purchase_price'
+  | 'purchase_qty'
+  | 'purchase_unit'
+  | 'unit_of_measure'
+  | 'price_per_unit'
+  | 'price_unit_of_measure'
+  | 'category'
+> & {
+  ingredient_conversions: IngredientConversion[];
+};
+
 export type RecipeWithIngredients = Recipe & {
   recipe_ingredients: Array<
     RecipeIngredient & {
-      ingredient: Pick<
-        Ingredient,
-        'id' | 'name' | 'unit_of_measure' | 'price_per_unit' | 'price_unit_of_measure' | 'category'
-      > | null;
+      ingredient: RecipeIngredientCatalog | null;
     }
   >;
 };
@@ -38,6 +53,21 @@ export type RecipeFilters = {
   dietaryTag?: string | null;
   ingredientId?: string | null;
 };
+
+const ingredientSelect = `
+  id,
+  name,
+  display_name,
+  stock_unit,
+  purchase_price,
+  purchase_qty,
+  purchase_unit,
+  unit_of_measure,
+  price_per_unit,
+  price_unit_of_measure,
+  category,
+  ingredient_conversions (*)
+`;
 
 export async function fetchRecipes(filters: RecipeFilters = {}): Promise<Recipe[]> {
   let query = supabase.from(tables.recipes).select('*').order('title', { ascending: true });
@@ -88,12 +118,7 @@ export async function fetchRecipe(id: string): Promise<RecipeWithIngredients | n
       recipe_ingredients (
         *,
         ingredient:ingredient_id (
-          id,
-          name,
-          unit_of_measure,
-          price_per_unit,
-          price_unit_of_measure,
-          category
+          ${ingredientSelect}
         )
       )
     `,
@@ -129,6 +154,7 @@ async function replaceRecipeIngredients(
     recipe_id: recipeId,
     ingredient_id: ingredient.ingredient_id,
     required_quantity: ingredient.required_quantity,
+    required_unit: ingredient.required_unit,
   }));
 
   const { error: insertError } = await supabase.from(tables.recipeIngredients).insert(rows);

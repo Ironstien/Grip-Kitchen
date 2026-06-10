@@ -53,6 +53,10 @@ function normalizeUnit(unit: string): string {
   return unit.trim().toLowerCase();
 }
 
+export function normalizeUnitSymbol(unit: string): string {
+  return normalizeUnit(unit);
+}
+
 function getAllDefinitions(): UnitDefinition[] {
   return [...registeredUserUnits, ...BUILTIN_ALIASES];
 }
@@ -113,6 +117,22 @@ export function getRegisteredUnitSymbols(): string[] {
 
 export function getUnitFamily(unit: string): UnitFamily | 'unknown' {
   return getUnitDefinition(unit)?.family ?? 'unknown';
+}
+
+export function getUnitsInSameFamily(unit: string): string[] {
+  const definition = getUnitDefinition(unit);
+  if (!definition) {
+    return [unit];
+  }
+
+  const symbols = new Set<string>();
+  for (const entry of getAllDefinitions()) {
+    if (entry.family === definition.family) {
+      symbols.add(entry.symbol);
+    }
+  }
+
+  return Array.from(symbols);
 }
 
 export function canConvertUnits(fromUnit: string, toUnit: string): boolean {

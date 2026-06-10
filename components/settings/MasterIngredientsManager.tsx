@@ -9,14 +9,14 @@ import { Text } from '@/components/ui/Text';
 import { useIngredients } from '@/hooks/useIngredients';
 import { useResponsive } from '@/hooks/useResponsive';
 import { formatErrorMessage } from '@/lib/errors';
-import { formatPricePerUnit } from '@/lib/price';
-import type { Ingredient } from '@/types/database';
+import { formatPurchaseSummary, getIngredientDisplayName } from '@/lib/ingredients';
+import type { IngredientWithConversions } from '@/types/database';
 
 export function MasterIngredientsManager() {
   const { isDesktop } = useResponsive();
   const { data: ingredients = [], isLoading, isError, error } = useIngredients();
   const [search, setSearch] = useState('');
-  const [editingIngredient, setEditingIngredient] = useState<Ingredient | null | undefined>(
+  const [editingIngredient, setEditingIngredient] = useState<IngredientWithConversions | null | undefined>(
     undefined,
   );
 
@@ -29,6 +29,7 @@ export function MasterIngredientsManager() {
     return ingredients.filter(
       (ingredient) =>
         ingredient.name.toLowerCase().includes(query) ||
+        ingredient.display_name.toLowerCase().includes(query) ||
         ingredient.category.toLowerCase().includes(query),
     );
   }, [ingredients, search]);
@@ -51,8 +52,9 @@ export function MasterIngredientsManager() {
     <View className="gap-4">
       <Text variant="label">Master Ingredient List</Text>
       <Text variant="bodySecondary">
-        Add and edit ingredient details here — name, category, units, and pricing. The pantry only
-        tracks what you have in stock.
+        Record how you buy each item — store name, display name, total price, quantity, and unit.
+        The pantry tracks stock in the stock unit. Add conversions so recipes can use cooking units
+        like slices or cups.
       </Text>
 
       <Input
@@ -83,12 +85,21 @@ export function MasterIngredientsManager() {
                 onPress={() => setEditingIngredient(ingredient)}
                 className="rounded-card border border-border px-3 py-3 dark:border-border-dark">
                 <Text className="font-medium">{ingredient.name}</Text>
+                {ingredient.display_name ? (
+                  <Text variant="bodySecondary">{getIngredientDisplayName(ingredient)}</Text>
+                ) : null}
                 <Text variant="bodySecondary">
-                  {ingredient.category} · {ingredient.unit_of_measure}
+                  {ingredient.category} · stock: {ingredient.stock_unit}
                 </Text>
                 <Text variant="caption" className="mt-1">
-                  {formatPricePerUnit(ingredient.price_per_unit, ingredient.price_unit_of_measure)}
+                  {formatPurchaseSummary(ingredient)}
                 </Text>
+                {ingredient.ingredient_conversions.length > 0 ? (
+                  <Text variant="caption" className="mt-1">
+                    {ingredient.ingredient_conversions.length} conversion rule
+                    {ingredient.ingredient_conversions.length === 1 ? '' : 's'}
+                  </Text>
+                ) : null}
               </Pressable>
             ))
           )}

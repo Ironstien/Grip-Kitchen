@@ -17,6 +17,7 @@ export const tables = {
   userUnits: 'user_units',
   userCategories: 'user_categories',
   ingredients: 'ingredients',
+  ingredientConversions: 'ingredient_conversions',
   storageLocations: 'storage_locations',
   inventory: 'inventory',
   recipes: 'recipes',

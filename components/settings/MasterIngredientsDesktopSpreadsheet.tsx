@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, TextInput, View } from 'react-native';
+import { Alert, Modal, Pressable, ScrollView, TextInput, View } from 'react-native';
 
+import { IngredientConversionsEditor } from '@/components/settings/IngredientConversionsEditor';
 import { CategorySelect } from '@/components/ui/CategorySelect';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
@@ -11,40 +12,48 @@ import { useUserUnits } from '@/hooks/useUserUnits';
 import { isMasterCategoryName, resolveMasterCategoryName } from '@/lib/categories';
 import { cn } from '@/lib/cn';
 import { formatErrorMessage } from '@/lib/errors';
+import { formatPurchaseSummary } from '@/lib/ingredients';
 import { isMasterUnitSymbol, resolveMasterUnitSymbol } from '@/lib/units';
-import type { Ingredient } from '@/types/database';
+import type { IngredientWithConversions } from '@/types/database';
 
 type SortKey =
   | 'name'
+  | 'display_name'
   | 'category'
-  | 'unit_of_measure'
-  | 'price_per_unit'
-  | 'price_unit_of_measure';
+  | 'purchase_price'
+  | 'purchase_qty'
+  | 'purchase_unit'
+  | 'stock_unit';
 
 type MasterIngredientsDesktopSpreadsheetProps = {
-  ingredients: Ingredient[];
+  ingredients: IngredientWithConversions[];
 };
 
 type NewRowDraft = {
   name: string;
+  display_name: string;
   category: string;
-  unit_of_measure: string;
-  price_per_unit: string;
-  price_unit_of_measure: string;
+  purchase_price: string;
+  purchase_qty: string;
+  purchase_unit: string;
+  stock_unit: string;
 };
 
-const PICKER_KEYS = new Set<SortKey>(['category', 'unit_of_measure', 'price_unit_of_measure']);
+const PICKER_KEYS = new Set<SortKey>(['category', 'purchase_unit', 'stock_unit']);
 
-const columns: Array<{ key: SortKey; label: string; flex: number }> = [
-  { key: 'name', label: 'Name', flex: 2.2 },
-  { key: 'category', label: 'Category', flex: 1.4 },
-  { key: 'unit_of_measure', label: 'Unit', flex: 1 },
-  { key: 'price_per_unit', label: 'Price (AUD)', flex: 1 },
-  { key: 'price_unit_of_measure', label: 'Per', flex: 1 },
+const columns: Array<{ key: SortKey; label: string; width: number }> = [
+  { key: 'name', label: 'Name', width: 220 },
+  { key: 'display_name', label: 'Display Name', width: 160 },
+  { key: 'category', label: 'Category', width: 140 },
+  { key: 'purchase_price', label: 'Price (AUD)', width: 100 },
+  { key: 'purchase_qty', label: 'QTY', width: 72 },
+  { key: 'purchase_unit', label: 'Unit', width: 100 },
+  { key: 'stock_unit', label: 'Stock Unit', width: 100 },
 ];
 
 function getDefaultUnit(masterUnits: Array<{ symbol: string }> = []): string {
   return (
+    masterUnits.find((unit) => unit.symbol === 'pack')?.symbol ??
     masterUnits.find((unit) => unit.symbol === 'each')?.symbol ??
     masterUnits[0]?.symbol ??
     ''
@@ -67,10 +76,12 @@ function createDefaultNewRow(
 
   return {
     name: '',
+    display_name: '',
     category: getDefaultCategory(masterCategories),
-    unit_of_measure: defaultUnit,
-    price_per_unit: '0',
-    price_unit_of_measure: defaultUnit,
+    purchase_price: '0',
+    purchase_qty: '1',
+    purchase_unit: defaultUnit,
+    stock_unit: defaultUnit,
   };
 }
 
@@ -87,6 +98,9 @@ export function MasterIngredientsDesktopSpreadsheet({
   const [newRow, setNewRow] = useState<NewRowDraft>(() => createDefaultNewRow([], []));
   const [newRowError, setNewRowError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [conversionsIngredient, setConversionsIngredient] = useState<IngredientWithConversions | null>(
+    null,
+  );
   const { create, update, remove } = useIngredientMutations();
 
   useEffect(() => {
@@ -105,12 +119,12 @@ export function MasterIngredientsDesktopSpreadsheet({
         category: isMasterCategoryName(current.category, masterCategories)
           ? current.category
           : defaults.category,
-        unit_of_measure: isMasterUnitSymbol(current.unit_of_measure, masterUnits)
-          ? current.unit_of_measure
-          : defaults.unit_of_measure,
-        price_unit_of_measure: isMasterUnitSymbol(current.price_unit_of_measure, masterUnits)
-          ? current.price_unit_of_measure
-          : defaults.price_unit_of_measure,
+        purchase_unit: isMasterUnitSymbol(current.purchase_unit, masterUnits)
+          ? current.purchase_unit
+          : defaults.purchase_unit,
+        stock_unit: isMasterUnitSymbol(current.stock_unit, masterUnits)
+          ? current.stock_unit
+          : defaults.stock_unit,
       };
     });
   }, [masterCategories, masterUnits]);
@@ -133,6 +147,8 @@ export function MasterIngredientsDesktopSpreadsheet({
 
     return copy;
   }, [ingredients, sortAsc, sortKey]);
+
+  const tableWidth = columns.reduce((sum, column) => sum + column.width, 0) + 40 + 140;
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -164,7 +180,7 @@ export function MasterIngredientsDesktopSpreadsheet({
       return null;
     }
 
-    if (key === 'price_per_unit') {
+    if (key === 'purchase_price') {
       const parsed = Number(value);
       if (Number.isNaN(parsed) || parsed < 0) {
         return 'Enter a valid price.';
@@ -172,7 +188,15 @@ export function MasterIngredientsDesktopSpreadsheet({
       return null;
     }
 
-    if (key === 'unit_of_measure' || key === 'price_unit_of_measure') {
+    if (key === 'purchase_qty') {
+      const parsed = Number(value);
+      if (Number.isNaN(parsed) || parsed <= 0) {
+        return 'Enter a quantity greater than zero.';
+      }
+      return null;
+    }
+
+    if (key === 'purchase_unit' || key === 'stock_unit') {
       if (!isMasterUnitSymbol(value, masterUnits)) {
         return 'Choose a unit from the Master Units List.';
       }
@@ -189,14 +213,14 @@ export function MasterIngredientsDesktopSpreadsheet({
     return null;
   };
 
-  const startEditing = (ingredient: Ingredient, key: SortKey) => {
+  const startEditing = (ingredient: IngredientWithConversions, key: SortKey) => {
     if (PICKER_KEYS.has(key)) {
       return;
     }
 
     const value =
-      key === 'price_per_unit'
-        ? String(ingredient.price_per_unit)
+      key === 'purchase_price' || key === 'purchase_qty'
+        ? String(ingredient[key])
         : String(ingredient[key] ?? '');
 
     setEditingCell({ id: ingredient.id, key });
@@ -222,8 +246,8 @@ export function MasterIngredientsDesktopSpreadsheet({
     }
 
     const currentValue =
-      editingCell.key === 'price_per_unit'
-        ? String(ingredient.price_per_unit)
+      editingCell.key === 'purchase_price' || editingCell.key === 'purchase_qty'
+        ? String(ingredient[editingCell.key])
         : String(ingredient[editingCell.key] ?? '');
 
     if (trimmed === currentValue.trim()) {
@@ -233,22 +257,21 @@ export function MasterIngredientsDesktopSpreadsheet({
 
     try {
       const input: Record<string, string | number> =
-        editingCell.key === 'price_per_unit'
-          ? { price_per_unit: Number(trimmed) }
-          : editingCell.key === 'name'
-            ? { name: trimmed }
+        editingCell.key === 'purchase_price' || editingCell.key === 'purchase_qty'
+          ? { [editingCell.key]: Number(trimmed) }
+          : editingCell.key === 'name' || editingCell.key === 'display_name'
+            ? { [editingCell.key]: trimmed }
             : { [editingCell.key]: trimmed };
 
       await update.mutateAsync({ id: ingredient.id, input });
     } catch (error) {
-      const message = formatErrorMessage(error, 'Update failed.');
-      Alert.alert('Update failed', message);
+      Alert.alert('Update failed', formatErrorMessage(error, 'Update failed.'));
     } finally {
       setEditingCell(null);
     }
   };
 
-  const handleCategoryChange = async (ingredient: Ingredient, category: string) => {
+  const handleCategoryChange = async (ingredient: IngredientWithConversions, category: string) => {
     if (ingredient.category === category) {
       return;
     }
@@ -256,14 +279,13 @@ export function MasterIngredientsDesktopSpreadsheet({
     try {
       await update.mutateAsync({ id: ingredient.id, input: { category } });
     } catch (error) {
-      const message = formatErrorMessage(error, 'Update failed.');
-      Alert.alert('Update failed', message);
+      Alert.alert('Update failed', formatErrorMessage(error, 'Update failed.'));
     }
   };
 
   const handleUnitChange = async (
-    ingredient: Ingredient,
-    key: 'unit_of_measure' | 'price_unit_of_measure',
+    ingredient: IngredientWithConversions,
+    key: 'purchase_unit' | 'stock_unit',
     symbol: string,
   ) => {
     if (ingredient[key] === symbol) {
@@ -273,8 +295,7 @@ export function MasterIngredientsDesktopSpreadsheet({
     try {
       await update.mutateAsync({ id: ingredient.id, input: { [key]: symbol } });
     } catch (error) {
-      const message = formatErrorMessage(error, 'Update failed.');
-      Alert.alert('Update failed', message);
+      Alert.alert('Update failed', formatErrorMessage(error, 'Update failed.'));
     }
   };
 
@@ -285,21 +306,21 @@ export function MasterIngredientsDesktopSpreadsheet({
     }
 
     const categoryName = resolveMasterCategoryName(newRow.category, masterCategories);
-    const unitSymbol = resolveMasterUnitSymbol(newRow.unit_of_measure, masterUnits);
-    const priceUnitSymbol = resolveMasterUnitSymbol(newRow.price_unit_of_measure, masterUnits);
+    const purchaseUnit = resolveMasterUnitSymbol(newRow.purchase_unit, masterUnits);
+    const stockUnit = resolveMasterUnitSymbol(newRow.stock_unit, masterUnits);
 
     const validationErrors = [
       validateField('name', name),
       validateField('category', newRow.category),
-      validateField('unit_of_measure', newRow.unit_of_measure),
-      validateField('price_per_unit', newRow.price_per_unit),
-      validateField('price_unit_of_measure', newRow.price_unit_of_measure),
+      validateField('purchase_price', newRow.purchase_price),
+      validateField('purchase_qty', newRow.purchase_qty),
+      validateField('purchase_unit', newRow.purchase_unit),
+      validateField('stock_unit', newRow.stock_unit),
     ].filter(Boolean);
 
-    if (validationErrors.length > 0 || !categoryName || !unitSymbol || !priceUnitSymbol) {
+    if (validationErrors.length > 0 || !categoryName || !purchaseUnit || !stockUnit) {
       const message =
-        validationErrors[0] ??
-        'Choose category and units from the Master lists in Settings.';
+        validationErrors[0] ?? 'Choose category and units from the Master lists in Settings.';
       setNewRowError(message);
       Alert.alert('Cannot add row', message);
       return;
@@ -310,10 +331,12 @@ export function MasterIngredientsDesktopSpreadsheet({
       setNewRowError(null);
       await create.mutateAsync({
         name,
+        display_name: newRow.display_name.trim(),
         category: categoryName,
-        unit_of_measure: unitSymbol,
-        price_per_unit: Number(newRow.price_per_unit),
-        price_unit_of_measure: priceUnitSymbol,
+        purchase_price: Number(newRow.purchase_price),
+        purchase_qty: Number(newRow.purchase_qty),
+        purchase_unit: purchaseUnit,
+        stock_unit: stockUnit,
       });
       setNewRow(createDefaultNewRow(masterUnits, masterCategories));
     } catch (error) {
@@ -327,7 +350,13 @@ export function MasterIngredientsDesktopSpreadsheet({
 
   const updateNewRowField = (key: keyof NewRowDraft, value: string) => {
     setNewRowError(null);
-    setNewRow((current) => ({ ...current, [key]: value }));
+    setNewRow((current) => {
+      const next = { ...current, [key]: value };
+      if (key === 'purchase_unit' && current.stock_unit === current.purchase_unit) {
+        next.stock_unit = value;
+      }
+      return next;
+    });
   };
 
   const handleBulkDelete = () => {
@@ -353,7 +382,7 @@ export function MasterIngredientsDesktopSpreadsheet({
     );
   };
 
-  const handleDeleteRow = (ingredient: Ingredient) => {
+  const handleDeleteRow = (ingredient: IngredientWithConversions) => {
     Alert.alert(
       'Delete ingredient',
       `Delete ${ingredient.name}? This removes it from the pantry and cannot be undone if used in recipes.`,
@@ -369,7 +398,7 @@ export function MasterIngredientsDesktopSpreadsheet({
   };
 
   const renderTextCell = (
-    ingredient: Ingredient,
+    ingredient: IngredientWithConversions,
     column: (typeof columns)[number],
     rawValue: string,
   ) => {
@@ -378,7 +407,7 @@ export function MasterIngredientsDesktopSpreadsheet({
     return (
       <Pressable
         key={column.key}
-        style={{ flex: column.flex }}
+        style={{ width: column.width }}
         onPress={() => startEditing(ingredient, column.key)}
         className="px-2">
         {isEditing ? (
@@ -388,18 +417,22 @@ export function MasterIngredientsDesktopSpreadsheet({
             onChangeText={setDraftValue}
             onBlur={() => void commitEdit()}
             onSubmitEditing={() => void commitEdit()}
-            keyboardType={column.key === 'price_per_unit' ? 'decimal-pad' : 'default'}
+            keyboardType={
+              column.key === 'purchase_price' || column.key === 'purchase_qty' ? 'decimal-pad' : 'default'
+            }
             className="rounded border border-brand px-2 py-1 text-sm text-text dark:text-text-dark"
           />
         ) : (
-          <Text className="text-sm">{rawValue}</Text>
+          <Text className="text-sm" numberOfLines={2}>
+            {rawValue || '—'}
+          </Text>
         )}
       </Pressable>
     );
   };
 
-  const renderCategoryCell = (ingredient: Ingredient, flex: number) => (
-    <View key="category" style={{ flex }} className="px-2">
+  const renderCategoryCell = (ingredient: IngredientWithConversions, width: number) => (
+    <View key="category" style={{ width }} className="px-2">
       <CategorySelect
         compact
         value={ingredient.category}
@@ -410,11 +443,11 @@ export function MasterIngredientsDesktopSpreadsheet({
   );
 
   const renderUnitCell = (
-    ingredient: Ingredient,
-    key: 'unit_of_measure' | 'price_unit_of_measure',
-    flex: number,
+    ingredient: IngredientWithConversions,
+    key: 'purchase_unit' | 'stock_unit',
+    width: number,
   ) => (
-    <View key={key} style={{ flex }} className="px-2">
+    <View key={key} style={{ width }} className="px-2">
       <UnitSelect
         compact
         value={ingredient[key]}
@@ -424,38 +457,21 @@ export function MasterIngredientsDesktopSpreadsheet({
     </View>
   );
 
-  const renderNewRowTextCell = (key: keyof NewRowDraft, flex: number, placeholder: string) => (
-    <View key={key} style={{ flex }} className="px-2">
+  const renderNewRowTextCell = (
+    key: keyof NewRowDraft,
+    width: number,
+    placeholder: string,
+    keyboardType: 'default' | 'decimal-pad' = 'default',
+  ) => (
+    <View key={key} style={{ width }} className="px-2">
       <TextInput
         value={newRow[key]}
         onChangeText={(value) => updateNewRowField(key, value)}
         onSubmitEditing={() => void commitNewRow()}
         placeholder={placeholder}
         placeholderTextColor="#9ca3af"
-        keyboardType={key === 'price_per_unit' ? 'decimal-pad' : 'default'}
+        keyboardType={keyboardType}
         className="rounded border border-dashed border-border px-2 py-1 text-sm text-text dark:border-border-dark dark:text-text-dark"
-      />
-    </View>
-  );
-
-  const renderNewRowCategoryCell = (flex: number) => (
-    <View key="category" style={{ flex }} className="px-2">
-      <CategorySelect
-        compact
-        value={newRow.category}
-        categories={masterCategories}
-        onChange={(category) => updateNewRowField('category', category)}
-      />
-    </View>
-  );
-
-  const renderNewRowUnitCell = (key: 'unit_of_measure' | 'price_unit_of_measure', flex: number) => (
-    <View key={key} style={{ flex }} className="px-2">
-      <UnitSelect
-        compact
-        value={newRow[key]}
-        units={masterUnits}
-        onChange={(symbol) => updateNewRowField(key, symbol)}
       />
     </View>
   );
@@ -478,94 +494,153 @@ export function MasterIngredientsDesktopSpreadsheet({
         </View>
       )}
 
-      <View className="w-full">
-        <View className="w-full flex-row border-b border-border bg-surface-secondary px-2 py-1.5 dark:border-border-dark dark:bg-surface-dark-secondary">
-          <View className="w-10" />
-          {columns.map((column) => (
-            <Pressable
-              key={column.key}
-              style={{ flex: column.flex }}
-              onPress={() => toggleSort(column.key)}
-              className="px-2">
-              <Text variant="label">
-                {column.label}
-                {sortKey === column.key ? (sortAsc ? ' ↑' : ' ↓') : ''}
-              </Text>
-            </Pressable>
-          ))}
-          <View className="w-16 px-2">
-            <Text variant="label" />
-          </View>
-        </View>
-
-        {sortedIngredients.map((ingredient) => (
-          <View
-            key={ingredient.id}
-            className="w-full flex-row items-center border-b border-border px-2 py-1.5 dark:border-border-dark">
-            <Pressable onPress={() => toggleSelected(ingredient.id)} className="w-10 items-center">
-              <View
-                className={cn(
-                  'h-4 w-4 rounded border border-border dark:border-border-dark',
-                  selectedIds.has(ingredient.id) && 'bg-brand dark:bg-brand-dark',
-                )}
-              />
-            </Pressable>
-
-            {columns.map((column) => {
-              if (column.key === 'category') {
-                return renderCategoryCell(ingredient, column.flex);
-              }
-
-              if (column.key === 'unit_of_measure' || column.key === 'price_unit_of_measure') {
-                return renderUnitCell(ingredient, column.key, column.flex);
-              }
-
-              const rawValue =
-                column.key === 'price_per_unit'
-                  ? String(ingredient.price_per_unit)
-                  : String(ingredient[column.key] ?? '');
-
-              return renderTextCell(ingredient, column, rawValue);
-            })}
-
-            <View className="w-16 px-2">
-              <Pressable onPress={() => handleDeleteRow(ingredient)}>
-                <Text className="text-sm text-status-danger">Delete</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator className="w-full">
+        <View style={{ minWidth: tableWidth }}>
+          <View className="flex-row border-b border-border bg-surface-secondary px-2 py-1.5 dark:border-border-dark dark:bg-surface-dark-secondary">
+            <View className="w-10" />
+            {columns.map((column) => (
+              <Pressable
+                key={column.key}
+                style={{ width: column.width }}
+                onPress={() => toggleSort(column.key)}
+                className="px-2">
+                <Text variant="label">
+                  {column.label}
+                  {sortKey === column.key ? (sortAsc ? ' ↑' : ' ↓') : ''}
+                </Text>
               </Pressable>
+            ))}
+            <View style={{ width: 140 }} className="px-2">
+              <Text variant="label">Actions</Text>
             </View>
           </View>
-        ))}
 
-        <View className="w-full flex-row items-center border-b border-border bg-brand/5 px-2 py-1.5 dark:border-border-dark dark:bg-brand-dark/10">
-          <View className="w-10 items-center">
-            <Text variant="caption">+</Text>
-          </View>
-          {renderNewRowTextCell('name', columns[0].flex, 'New ingredient...')}
-          {renderNewRowCategoryCell(columns[1].flex)}
-          {renderNewRowUnitCell('unit_of_measure', columns[2].flex)}
-          {renderNewRowTextCell('price_per_unit', columns[3].flex, '0')}
-          {renderNewRowUnitCell('price_unit_of_measure', columns[4].flex)}
-          <View className="w-20 px-1">
-            <Button
-              label={isCreating ? 'Adding...' : 'Add'}
-              variant="secondary"
-              disabled={!newRow.name.trim() || isCreating}
-              onPress={() => void commitNewRow()}
-              className="min-h-[36px] px-2 py-1"
-              textClassName="text-sm"
-            />
+          {sortedIngredients.map((ingredient) => (
+            <View
+              key={ingredient.id}
+              className="flex-row items-center border-b border-border px-2 py-1.5 dark:border-border-dark">
+              <Pressable onPress={() => toggleSelected(ingredient.id)} className="w-10 items-center">
+                <View
+                  className={cn(
+                    'h-4 w-4 rounded border border-border dark:border-border-dark',
+                    selectedIds.has(ingredient.id) && 'bg-brand dark:bg-brand-dark',
+                  )}
+                />
+              </Pressable>
+
+              {columns.map((column) => {
+                if (column.key === 'category') {
+                  return renderCategoryCell(ingredient, column.width);
+                }
+
+                if (column.key === 'purchase_unit' || column.key === 'stock_unit') {
+                  return renderUnitCell(ingredient, column.key, column.width);
+                }
+
+                const rawValue =
+                  column.key === 'purchase_price' || column.key === 'purchase_qty'
+                    ? String(ingredient[column.key])
+                    : String(ingredient[column.key] ?? '');
+
+                return renderTextCell(ingredient, column, rawValue);
+              })}
+
+              <View style={{ width: 140 }} className="flex-row items-center gap-2 px-2">
+                <Pressable onPress={() => setConversionsIngredient(ingredient)}>
+                  <Text className="text-sm text-brand dark:text-brand-dark">Convert</Text>
+                </Pressable>
+                <Pressable onPress={() => handleDeleteRow(ingredient)}>
+                  <Text className="text-sm text-status-danger">Delete</Text>
+                </Pressable>
+              </View>
+            </View>
+          ))}
+
+          <View className="flex-row items-center border-b border-border bg-brand/5 px-2 py-1.5 dark:border-border-dark dark:bg-brand-dark/10">
+            <View className="w-10 items-center">
+              <Text variant="caption">+</Text>
+            </View>
+            {renderNewRowTextCell('name', columns[0].width, 'Store name...')}
+            {renderNewRowTextCell('display_name', columns[1].width, 'Display name...')}
+            <View style={{ width: columns[2].width }} className="px-2">
+              <CategorySelect
+                compact
+                value={newRow.category}
+                categories={masterCategories}
+                onChange={(category) => updateNewRowField('category', category)}
+              />
+            </View>
+            {renderNewRowTextCell('purchase_price', columns[3].width, '0', 'decimal-pad')}
+            {renderNewRowTextCell('purchase_qty', columns[4].width, '1', 'decimal-pad')}
+            <View style={{ width: columns[5].width }} className="px-2">
+              <UnitSelect
+                compact
+                value={newRow.purchase_unit}
+                units={masterUnits}
+                onChange={(symbol) => updateNewRowField('purchase_unit', symbol)}
+              />
+            </View>
+            <View style={{ width: columns[6].width }} className="px-2">
+              <UnitSelect
+                compact
+                value={newRow.stock_unit}
+                units={masterUnits}
+                onChange={(symbol) => updateNewRowField('stock_unit', symbol)}
+              />
+            </View>
+            <View style={{ width: 140 }} className="px-2">
+              <Button
+                label={isCreating ? 'Adding...' : 'Add'}
+                variant="secondary"
+                disabled={!newRow.name.trim() || isCreating}
+                onPress={() => void commitNewRow()}
+                className="min-h-[36px] px-2 py-1"
+                textClassName="text-sm"
+              />
+            </View>
           </View>
         </View>
-      </View>
+      </ScrollView>
 
-      {newRowError ? (
-        <Text className="text-sm text-status-danger">{newRowError}</Text>
-      ) : null}
+      {newRowError ? <Text className="text-sm text-status-danger">{newRowError}</Text> : null}
 
       <Text variant="caption">
-        Click name or price to edit. Category and unit columns use the Master lists. Add a new
-        ingredient in the bottom row.
+        Enter how you buy each item: total price, quantity, and unit. Stock unit is how the pantry
+        counts it (e.g. pack, bottle). Use Convert to add rules like 1 pack = 12 slices. Display name
+        is shown in recipes.
       </Text>
+
+      {sortedIngredients.length > 0 ? (
+        <Text variant="caption">
+          Example: {formatPurchaseSummary(sortedIngredients[0])}
+        </Text>
+      ) : null}
+
+      <Modal
+        visible={conversionsIngredient !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setConversionsIngredient(null)}>
+        <View className="flex-1 items-center justify-center bg-black/40 p-4">
+          <Pressable className="absolute inset-0" onPress={() => setConversionsIngredient(null)} />
+          <View className="max-h-[80%] w-full max-w-2xl rounded-card border border-border bg-surface p-5 dark:border-border-dark dark:bg-surface-dark">
+            <Text className="mb-1 text-lg font-semibold">Unit conversions</Text>
+            {conversionsIngredient ? (
+              <>
+                <Text variant="bodySecondary" className="mb-4">
+                  {conversionsIngredient.name}
+                </Text>
+                <ScrollView className="max-h-[420px]">
+                  <IngredientConversionsEditor
+                    ingredient={conversionsIngredient}
+                    onClose={() => setConversionsIngredient(null)}
+                  />
+                </ScrollView>
+              </>
+            ) : null}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

@@ -7,7 +7,7 @@ import { Text } from '@/components/ui/Text';
 import { useInventoryMutations } from '@/hooks/useInventory';
 import { formatExpirationDate, getExpiryStatus } from '@/lib/inventory/expiry';
 import type { PantryItem } from '@/lib/inventory/pantry';
-import { formatPricePerUnit } from '@/lib/price';
+import { getIngredientDisplayName, formatPurchaseSummary } from '@/lib/ingredients';
 import { cn } from '@/lib/cn';
 import type { StorageLocation } from '@/types/database';
 
@@ -16,8 +16,8 @@ type SortKey =
   | 'category'
   | 'location'
   | 'quantity'
-  | 'unit_of_measure'
-  | 'price_per_unit'
+  | 'stock_unit'
+  | 'purchase_price'
   | 'expiration_date'
   | 'min_threshold';
 
@@ -32,8 +32,8 @@ const columns: Array<{ key: SortKey; label: string; flex: number; editable: bool
   { key: 'category', label: 'Category', flex: 1.2, editable: false },
   { key: 'location', label: 'Location', flex: 1.2, editable: true },
   { key: 'quantity', label: 'Qty', flex: 0.8, editable: true },
-  { key: 'unit_of_measure', label: 'Unit', flex: 0.8, editable: false },
-  { key: 'price_per_unit', label: 'Price/unit', flex: 1, editable: false },
+  { key: 'stock_unit', label: 'Unit', flex: 0.8, editable: false },
+  { key: 'purchase_price', label: 'Purchase', flex: 1.4, editable: false },
   { key: 'expiration_date', label: 'Expiry', flex: 1.2, editable: true },
   { key: 'min_threshold', label: 'Min', flex: 0.7, editable: true },
 ];
@@ -231,8 +231,10 @@ export function PantryDesktopSpreadsheet({
                       : ''
                     : column.key === 'expiration_date'
                       ? item.expiration_date ?? ''
-                      : column.key === 'price_per_unit'
-                        ? formatPricePerUnit(item.price_per_unit, item.price_unit_of_measure)
+                      : column.key === 'purchase_price'
+                        ? formatPurchaseSummary(item)
+                      : column.key === 'name'
+                        ? getIngredientDisplayName(item)
                         : String(item[column.key as keyof PantryItem] ?? '');
 
                 const isEditing =

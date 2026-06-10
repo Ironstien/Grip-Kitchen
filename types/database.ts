@@ -131,7 +131,12 @@ export type Database = {
           id: string;
           user_id: string;
           name: string;
+          display_name: string;
           category: string;
+          purchase_price: number;
+          purchase_qty: number;
+          purchase_unit: string;
+          stock_unit: string;
           unit_of_measure: string;
           price_per_unit: number;
           price_unit_of_measure: string;
@@ -140,7 +145,12 @@ export type Database = {
           id?: string;
           user_id: string;
           name: string;
+          display_name?: string;
           category?: string;
+          purchase_price?: number;
+          purchase_qty?: number;
+          purchase_unit?: string;
+          stock_unit?: string;
           unit_of_measure?: string;
           price_per_unit?: number;
           price_unit_of_measure?: string;
@@ -149,7 +159,12 @@ export type Database = {
           id?: string;
           user_id?: string;
           name?: string;
+          display_name?: string;
           category?: string;
+          purchase_price?: number;
+          purchase_qty?: number;
+          purchase_unit?: string;
+          stock_unit?: string;
           unit_of_measure?: string;
           price_per_unit?: number;
           price_unit_of_measure?: string;
@@ -160,6 +175,38 @@ export type Database = {
             columns: ['user_id'];
             isOneToOne: false;
             referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      ingredient_conversions: {
+        Row: {
+          id: string;
+          ingredient_id: string;
+          from_unit: string;
+          to_unit: string;
+          factor: number;
+        };
+        Insert: {
+          id?: string;
+          ingredient_id: string;
+          from_unit: string;
+          to_unit: string;
+          factor: number;
+        };
+        Update: {
+          id?: string;
+          ingredient_id?: string;
+          from_unit?: string;
+          to_unit?: string;
+          factor?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'ingredient_conversions_ingredient_id_fkey';
+            columns: ['ingredient_id'];
+            isOneToOne: false;
+            referencedRelation: 'ingredients';
             referencedColumns: ['id'];
           },
         ];
@@ -263,18 +310,21 @@ export type Database = {
           recipe_id: string;
           ingredient_id: string;
           required_quantity: number;
+          required_unit: string;
         };
         Insert: {
           id?: string;
           recipe_id: string;
           ingredient_id: string;
           required_quantity: number;
+          required_unit?: string;
         };
         Update: {
           id?: string;
           recipe_id?: string;
           ingredient_id?: string;
           required_quantity?: number;
+          required_unit?: string;
         };
         Relationships: [
           {
@@ -479,6 +529,11 @@ export type UserProfile = Tables<'users'>;
 export type UserUnit = Tables<'user_units'>;
 export type UserCategory = Tables<'user_categories'>;
 export type Ingredient = Tables<'ingredients'>;
+export type IngredientConversion = Tables<'ingredient_conversions'>;
+
+export type IngredientWithConversions = Ingredient & {
+  ingredient_conversions: IngredientConversion[];
+};
 export type StorageLocation = Tables<'storage_locations'>;
 export type InventoryItem = Tables<'inventory'>;
 export type Recipe = Tables<'recipes'>;

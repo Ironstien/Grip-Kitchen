@@ -11,11 +11,14 @@ import { Text } from '@/components/ui/Text';
 import { DIETARY_TAG_PRESETS } from '@/constants/recipes';
 import { useIngredients } from '@/hooks/useIngredients';
 import { useRecipeMutations, useRecipeScaling } from '@/hooks/useRecipes';
+import { getAllowedRecipeUnits } from '@/lib/ingredientConversions';
+import { getIngredientDisplayName } from '@/lib/ingredients';
 import type { RecipeWithIngredients } from '@/lib/services/recipes';
 
 type DraftIngredient = {
   ingredient_id: string;
   required_quantity: string;
+  required_unit: string;
 };
 
 type RecipeFormProps = {
@@ -41,12 +44,23 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
     recipe?.recipe_ingredients.map((ingredient) => ({
       ingredient_id: ingredient.ingredient_id,
       required_quantity: String(ingredient.required_quantity),
-    })) ?? [{ ingredient_id: ingredientsCatalog[0]?.id ?? '', required_quantity: '1' }],
+      required_unit: ingredient.required_unit,
+    })) ?? [
+      {
+        ingredient_id: ingredientsCatalog[0]?.id ?? '',
+        required_quantity: '1',
+        required_unit: ingredientsCatalog[0]?.stock_unit ?? 'each',
+      },
+    ],
   );
   const [isSaving, setIsSaving] = useState(false);
 
   const ingredientOptions = useMemo(
-    () => ingredientsCatalog.map((item) => ({ id: item.id, label: item.name })),
+    () =>
+      ingredientsCatalog.map((item) => ({
+        id: item.id,
+        label: getIngredientDisplayName(item),
+      })),
     [ingredientsCatalog],
   );
 
@@ -72,14 +86,21 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
             recipe_id: recipe?.id ?? 'draft',
             ingredient_id: entry.ingredient_id,
             required_quantity: Number(entry.required_quantity) || 0,
+            required_unit: entry.required_unit || catalogItem?.stock_unit || 'each',
             ingredient: catalogItem
               ? {
                   id: catalogItem.id,
                   name: catalogItem.name,
-                  unit_of_measure: catalogItem.unit_of_measure,
+                  display_name: catalogItem.display_name,
+                  stock_unit: catalogItem.stock_unit,
+                  purchase_price: catalogItem.purchase_price,
+                  purchase_qty: catalogItem.purchase_qty,
+                  purchase_unit: catalogItem.purchase_unit,
+                  unit_of_measure: catalogItem.stock_unit,
                   price_per_unit: catalogItem.price_per_unit,
-                  price_unit_of_measure: catalogItem.price_unit_of_measure,
+                  price_unit_of_measure: catalogItem.purchase_unit,
                   category: catalogItem.category,
+                  ingredient_conversions: catalogItem.ingredient_conversions,
                 }
               : null,
           };
@@ -118,10 +139,24 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
   };
 
   const addIngredientRow = () => {
+    const first = ingredientsCatalog[0];
     setIngredients((current) => [
       ...current,
-      { ingredient_id: ingredientsCatalog[0]?.id ?? '', required_quantity: '1' },
+      {
+        ingredient_id: first?.id ?? '',
+        required_quantity: '1',
+        required_unit: first?.stock_unit ?? 'each',
+      },
     ]);
+  };
+
+  const getAllowedUnitsForIngredient = (ingredientId: string): string[] => {
+    const catalogItem = ingredientsCatalog.find((item) => item.id === ingredientId);
+    if (!catalogItem) {
+      return ['each'];
+    }
+
+    return getAllowedRecipeUnits(catalogItem.stock_unit, catalogItem.ingredient_conversions);
   };
 
   const updateIngredient = (index: number, patch: Partial<DraftIngredient>) => {
@@ -151,7 +186,11 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
     }
   };
 
-  const validate = (): Array<{ ingredient_id: string; required_quantity: number }> | null => {
+  const validate = (): Array<{
+    ingredient_id: string;
+    required_quantity: number;
+    required_unit: string;
+  }> | null => {
     if (!title.trim()) {
       Alert.alert('Missing title', 'Enter a recipe title.');
       return null;
@@ -168,11 +207,27 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
       .map((entry) => ({
         ingredient_id: entry.ingredient_id,
         required_quantity: Number(entry.required_quantity),
+        required_unit: entry.required_unit,
       }));
 
-    if (parsedIngredients.some((entry) => Number.isNaN(entry.required_quantity) || entry.required_quantity <= 0)) {
+    if (
+      parsedIngredients.some(
+        (entry) => Number.isNaN(entry.required_quantity) || entry.required_quantity <= 0,
+      )
+    ) {
       Alert.alert('Invalid ingredients', 'Each ingredient needs a quantity greater than zero.');
       return null;
+    }
+
+    for (const entry of parsedIngredients) {
+      const allowedUnits = getAllowedUnitsForIngredient(entry.ingredient_id);
+      if (!allowedUnits.includes(entry.required_unit)) {
+        Alert.alert(
+          'Invalid unit',
+          'Choose a unit that can convert from this ingredient’s pantry stock unit. Add conversion rules in Settings if needed.',
+        );
+        return null;
+      }
     }
 
     return parsedIngredients;
@@ -293,17 +348,30 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
               onChange={(label) => {
                 const match = ingredientOptions.find((option) => option.label === label);
                 if (match) {
-                  updateIngredient(index, { ingredient_id: match.id });
+                  const catalogItem = ingredientsCatalog.find((item) => item.id === match.id);
+                  updateIngredient(index, {
+                    ingredient_id: match.id,
+                    required_unit: catalogItem?.stock_unit ?? 'each',
+                  });
                 }
               }}
             />
-            <FormField label="Required quantity">
-              <Input
-                value={entry.required_quantity}
-                onChangeText={(value) => updateIngredient(index, { required_quantity: value })}
-                keyboardType="decimal-pad"
-              />
-            </FormField>
+            <View className="flex-row gap-3">
+              <FormField label="Quantity" className="flex-1">
+                <Input
+                  value={entry.required_quantity}
+                  onChangeText={(value) => updateIngredient(index, { required_quantity: value })}
+                  keyboardType="decimal-pad"
+                />
+              </FormField>
+              <FormField label="Unit" className="flex-1">
+                <OptionSelect
+                  value={entry.required_unit}
+                  options={getAllowedUnitsForIngredient(entry.ingredient_id)}
+                  onChange={(unit) => updateIngredient(index, { required_unit: unit })}
+                />
+              </FormField>
+            </View>
             <Button label="Remove ingredient" variant="ghost" onPress={() => removeIngredient(index)} />
           </View>
         ))}
