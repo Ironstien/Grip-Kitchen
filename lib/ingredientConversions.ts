@@ -146,26 +146,29 @@ export function getIngredientSelectableUnits(
     ingredient_conversions?: IngredientConversion[];
   },
 ): string[] {
-  const units = new Set<string>();
+  const units = new Map<string, string>();
 
-  if (ingredient.stock_unit.trim()) {
-    units.add(ingredient.stock_unit.trim());
-  }
+  const add = (unit: string) => {
+    const trimmed = unit.trim();
+    if (!trimmed) {
+      return;
+    }
 
-  if (ingredient.purchase_unit.trim()) {
-    units.add(ingredient.purchase_unit.trim());
-  }
+    const key = normalizeUnitSymbol(trimmed);
+    if (!units.has(key)) {
+      units.set(key, trimmed);
+    }
+  };
+
+  add(ingredient.stock_unit);
+  add(ingredient.purchase_unit);
 
   for (const rule of ingredient.ingredient_conversions ?? []) {
-    if (rule.from_unit.trim()) {
-      units.add(rule.from_unit.trim());
-    }
-    if (rule.to_unit.trim()) {
-      units.add(rule.to_unit.trim());
-    }
+    add(rule.from_unit);
+    add(rule.to_unit);
   }
 
-  return Array.from(units).sort((a, b) => a.localeCompare(b));
+  return Array.from(units.values()).sort((a, b) => a.localeCompare(b));
 }
 
 export function canConvertIngredientUnits(

@@ -18,6 +18,8 @@ import { getIngredientSelectableUnits } from '@/lib/ingredientConversions';
 import { fieldPanelClassName, fieldSurfaceClassName } from '@/lib/fieldStyles';
 import { getIngredientDisplayName } from '@/lib/ingredients';
 import { cn } from '@/lib/cn';
+import { normalizeUnitSymbol } from '@/lib/units';
+import type { IngredientWithConversions } from '@/types/database';
 import type { RecipeWithIngredients } from '@/lib/services/recipes';
 
 type DraftIngredient = {
@@ -71,18 +73,42 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
     [ingredientsCatalog],
   );
 
+  const getCatalogItem = (ingredientId: string): IngredientWithConversions | null => {
+    const catalogItem = ingredientsCatalog.find((item) => item.id === ingredientId);
+    if (!catalogItem) {
+      return null;
+    }
+
+    if ((catalogItem.ingredient_conversions?.length ?? 0) > 0) {
+      return catalogItem;
+    }
+
+    const nested = recipe?.recipe_ingredients.find(
+      (entry) => entry.ingredient_id === ingredientId,
+    )?.ingredient;
+
+    if ((nested?.ingredient_conversions?.length ?? 0) > 0) {
+      return {
+        ...catalogItem,
+        ingredient_conversions: nested!.ingredient_conversions,
+      };
+    }
+
+    return catalogItem;
+  };
+
   const draftUnitOptions = useMemo(() => {
     if (!draftIngredient.ingredient_id) {
       return [];
     }
 
-    const catalogItem = ingredientsCatalog.find((item) => item.id === draftIngredient.ingredient_id);
+    const catalogItem = getCatalogItem(draftIngredient.ingredient_id);
     if (!catalogItem) {
       return [];
     }
 
     return getIngredientSelectableUnits(catalogItem);
-  }, [draftIngredient.ingredient_id, ingredientsCatalog]);
+  }, [draftIngredient.ingredient_id, ingredientsCatalog, recipe?.recipe_ingredients]);
 
   const previewRecipe = useMemo(() => {
     const parsedBaseServings = Number(baseServings) || 4;
@@ -97,7 +123,7 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
       dietary_tags: selectedTags,
       hero_image_url: heroImageUrl || null,
       recipe_ingredients: ingredients.map((entry, index) => {
-        const catalogItem = ingredientsCatalog.find((item) => item.id === entry.ingredient_id);
+        const catalogItem = getCatalogItem(entry.ingredient_id);
 
         return {
           id: recipe?.recipe_ingredients[index]?.id ?? `draft-${index}`,
@@ -157,12 +183,18 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
   };
 
   const getAllowedUnitsForIngredient = (ingredientId: string): string[] => {
-    const catalogItem = ingredientsCatalog.find((item) => item.id === ingredientId);
+    const catalogItem = getCatalogItem(ingredientId);
     if (!catalogItem) {
       return [];
     }
 
     return getIngredientSelectableUnits(catalogItem);
+  };
+
+  const unitIsAllowed = (ingredientId: string, unit: string): boolean => {
+    const allowed = getAllowedUnitsForIngredient(ingredientId);
+    const normalized = normalizeUnitSymbol(unit);
+    return allowed.some((entry) => normalizeUnitSymbol(entry) === normalized);
   };
 
   const updateDraftIngredient = (patch: Partial<DraftIngredient>) => {
@@ -185,8 +217,7 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
       return;
     }
 
-    const allowedUnits = getAllowedUnitsForIngredient(draftIngredient.ingredient_id);
-    if (!allowedUnits.includes(draftIngredient.required_unit)) {
+    if (!unitIsAllowed(draftIngredient.ingredient_id, draftIngredient.required_unit)) {
       Alert.alert(
         'Invalid unit',
         'Choose a stock, purchase, or conversion unit defined for this ingredient in Settings.',
@@ -256,8 +287,7 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
     }
 
     for (const entry of parsedIngredients) {
-      const allowedUnits = getAllowedUnitsForIngredient(entry.ingredient_id);
-      if (!allowedUnits.includes(entry.required_unit)) {
+      if (!unitIsAllowed(entry.ingredient_id, entry.required_unit)) {
         Alert.alert(
           'Invalid unit',
           'A saved ingredient uses a unit that is not defined for that item in Settings.',
@@ -396,13 +426,17 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
             options={ingredientOptions}
             placeholder="Type to search ingredients"
             onChange={(ingredientId) => {
-              const catalogItem = ingredientsCatalog.find((item) => item.id === ingredientId);
+              const catalogItem = getCatalogItem(ingredientId);
               const allowedUnits = catalogItem ? getIngredientSelectableUnits(catalogItem) : [];
+              const stockUnit = catalogItem?.stock_unit ?? '';
+              const defaultUnit =
+                allowedUnits.find((unit) => normalizeUnitSymbol(unit) === normalizeUnitSymbol(stockUnit)) ??
+                allowedUnits[0] ??
+                'each';
+
               updateDraftIngredient({
                 ingredient_id: ingredientId,
-                required_unit: allowedUnits.includes(catalogItem?.stock_unit ?? '')
-                  ? catalogItem!.stock_unit
-                  : (allowedUnits[0] ?? 'each'),
+                required_unit: defaultUnit,
               });
             }}
           />
