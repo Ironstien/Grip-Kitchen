@@ -4,6 +4,7 @@ import { Modal, Pressable, ScrollView, View } from 'react-native';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
 import { cn } from '@/lib/cn';
+import { fieldSurfaceClassName } from '@/lib/fieldStyles';
 
 type OptionSelectProps = {
   label?: string;
@@ -38,10 +39,11 @@ export function OptionSelect({
               key={option}
               onPress={() => onChange(option)}
               className={cn(
-                'rounded-button border px-2 py-1',
+                fieldSurfaceClassName,
+                'px-2 py-1',
                 selected
                   ? 'border-brand bg-brand/10 dark:border-brand-dark'
-                  : 'border-border dark:border-border-dark',
+                  : '',
               )}>
               <Text className={selected ? 'font-medium text-brand dark:text-brand-dark' : ''}>
                 {option || placeholder}
@@ -63,7 +65,7 @@ type FormFieldProps = {
 export function FormField({ label, children, className }: FormFieldProps) {
   return (
     <View className={className}>
-      <Text variant="label" className="mb-2">
+      <Text variant="label" className="mb-1">
         {label}
       </Text>
       {children}

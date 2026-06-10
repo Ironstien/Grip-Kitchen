@@ -13,7 +13,9 @@ import { DIETARY_TAG_PRESETS } from '@/constants/recipes';
 import { useIngredients } from '@/hooks/useIngredients';
 import { useRecipeMutations, useRecipeScaling } from '@/hooks/useRecipes';
 import { getAllowedRecipeUnits } from '@/lib/ingredientConversions';
+import { fieldPanelClassName, fieldSurfaceClassName } from '@/lib/fieldStyles';
 import { getIngredientDisplayName } from '@/lib/ingredients';
+import { cn } from '@/lib/cn';
 import type { RecipeWithIngredients } from '@/lib/services/recipes';
 
 type DraftIngredient = {
@@ -316,7 +318,7 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
         {heroImageUrl ? (
           <Image source={{ uri: heroImageUrl }} style={{ width: '100%', height: 220, borderRadius: 10 }} contentFit="cover" />
         ) : (
-          <View className="h-[220px] items-center justify-center rounded-card border border-dashed border-border dark:border-border-dark">
+          <View className={cn('h-[220px] items-center justify-center border border-dashed border-field-border', fieldPanelClassName)}>
             <Text variant="bodySecondary">Photo required for recipe cards</Text>
           </View>
         )}
@@ -329,20 +331,33 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
         />
       </FormField>
 
-      <View>
+      <View className={fieldPanelClassName}>
         <Text variant="label" className="mb-2">
           Dietary tags
         </Text>
-        <View className="mb-3 flex-row flex-wrap gap-2">
+        <View className="mb-3 flex-row flex-wrap gap-1.5">
           {DIETARY_TAG_PRESETS.map((tag) => (
-            <Pressable key={tag} onPress={() => toggleTag(tag)}>
-              <Text className={selectedTags.includes(tag) ? 'font-semibold text-brand dark:text-brand-dark' : ''}>
-                {selectedTags.includes(tag) ? '• ' : ''}{tag}
+            <Pressable
+              key={tag}
+              onPress={() => toggleTag(tag)}
+              className={cn(
+                fieldSurfaceClassName,
+                'px-2 py-1',
+                selectedTags.includes(tag) && 'border-brand bg-brand/10 dark:border-brand-dark',
+              )}>
+              <Text
+                className={cn(
+                  'text-sm',
+                  selectedTags.includes(tag)
+                    ? 'font-semibold text-brand dark:text-brand-dark'
+                    : 'text-text-secondary dark:text-text-dark-secondary',
+                )}>
+                {tag}
               </Text>
             </Pressable>
           ))}
         </View>
-        <View className="flex-row gap-3">
+        <View className="flex-row gap-2">
           <Input value={customTag} onChangeText={setCustomTag} placeholder="Custom tag" className="flex-1" />
           <Button label="Add tag" variant="secondary" onPress={addCustomTag} />
         </View>
@@ -351,7 +366,7 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
       <View className="gap-3">
         <Text variant="label">Ingredients</Text>
         {ingredients.map((entry, index) => (
-          <View key={`${entry.ingredient_id}-${index}`} className="gap-2 rounded-card border border-border p-3 dark:border-border-dark">
+          <View key={`${entry.ingredient_id}-${index}`} className={cn('gap-2', fieldPanelClassName)}>
             <AutocompleteInput
               label="Ingredient"
               value={entry.ingredient_id}

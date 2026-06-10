@@ -4,6 +4,7 @@ import { Modal, Pressable, ScrollView, View } from 'react-native';
 import { Text } from '@/components/ui/Text';
 import { useUserCategories } from '@/hooks/useUserCategories';
 import { cn } from '@/lib/cn';
+import { fieldSurfaceClassName } from '@/lib/fieldStyles';
 import type { UserCategory } from '@/types/database';
 
 type CategorySelectProps = {
@@ -63,8 +64,8 @@ export function CategorySelect({
         onPress={() => setOpen(true)}
         disabled={categories.length === 0}
         className={cn(
-          'flex-row items-center justify-between border border-border bg-surface dark:border-border-dark dark:bg-surface-dark-secondary',
-          'min-h-[32px] rounded px-2 py-1',
+          'flex-row items-center justify-between min-h-[32px] px-2 py-1',
+          fieldSurfaceClassName,
           categories.length === 0 && 'opacity-60',
         )}>
         <Text

@@ -86,7 +86,7 @@ export function AutocompleteInput({
         placeholder={placeholder}
       />
       {isOpen && filteredOptions.length > 0 ? (
-        <View className="max-h-40 rounded border border-border bg-surface dark:border-border-dark dark:bg-surface-dark">
+        <View className="max-h-40 rounded border border-field-border bg-field shadow-panel dark:border-field-dark-border dark:bg-field-dark">
           <ScrollView keyboardShouldPersistTaps="always" nestedScrollEnabled>
             {filteredOptions.map((option) => {
               const isSelected = option.id === value;
@@ -108,7 +108,7 @@ export function AutocompleteInput({
           </ScrollView>
         </View>
       ) : isOpen && query.trim().length > 0 ? (
-        <View className="rounded border border-border bg-surface px-2 py-1.5 dark:border-border-dark dark:bg-surface-dark">
+        <View className="rounded border border-field-border bg-field px-2 py-1.5 shadow-field dark:border-field-dark-border dark:bg-field-dark">
           <Text variant="caption">No matching ingredients</Text>
         </View>
       ) : null}

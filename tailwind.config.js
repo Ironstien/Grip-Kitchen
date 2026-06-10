@@ -32,6 +32,12 @@ module.exports = {
           dark: '#191919',
           'dark-secondary': '#252525',
         },
+        field: {
+          DEFAULT: '#F3F4F6',
+          border: '#D1D5DB',
+          dark: '#2A2A2A',
+          'dark-border': '#404040',
+        },
         border: {
           DEFAULT: '#E5E5E5',
           dark: '#333333',
@@ -51,6 +57,8 @@ module.exports = {
       },
       boxShadow: {
         card: '0 1px 3px rgba(0, 0, 0, 0.08)',
+        field: '0 1px 2px rgba(0, 0, 0, 0.07)',
+        panel: '0 1px 4px rgba(0, 0, 0, 0.1)',
         fab: '0 4px 12px rgba(0, 0, 0, 0.15)',
       },
     },

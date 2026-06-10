@@ -3,6 +3,7 @@ import { Modal, Pressable, ScrollView, View } from 'react-native';
 
 import { Text } from '@/components/ui/Text';
 import { cn } from '@/lib/cn';
+import { fieldSurfaceClassName } from '@/lib/fieldStyles';
 
 type SelectProps = {
   label?: string;
@@ -37,7 +38,10 @@ export function Select({
       ) : null}
       <Pressable
         onPress={() => setOpen(true)}
-        className="min-h-[32px] flex-row items-center justify-between rounded border border-border bg-surface px-2 py-1 dark:border-border-dark dark:bg-surface-dark-secondary">
+        className={cn(
+          'min-h-[32px] flex-row items-center justify-between px-2 py-1',
+          fieldSurfaceClassName,
+        )}>
         <Text
           className={cn('flex-1 text-sm', !value && 'text-text-secondary dark:text-text-dark-secondary')}
           numberOfLines={1}>

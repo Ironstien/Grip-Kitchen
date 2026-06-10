@@ -1,6 +1,7 @@
 import { Pressable, PressableProps, Text } from 'react-native';
 
 import { cn } from '@/lib/cn';
+import { fieldSurfaceClassName } from '@/lib/fieldStyles';
 
 type ButtonVariant = 'primary' | 'ghost' | 'secondary';
 
@@ -12,9 +13,9 @@ type ButtonProps = PressableProps & {
 };
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: 'bg-brand dark:bg-brand-dark',
-  ghost: 'bg-transparent border border-border dark:border-border-dark',
-  secondary: 'bg-surface-secondary dark:bg-surface-dark-secondary',
+  primary: 'bg-brand shadow-field dark:bg-brand-dark',
+  ghost: cn(fieldSurfaceClassName, 'bg-field dark:bg-field-dark'),
+  secondary: 'border border-field-border bg-[#E8EAED] shadow-field dark:border-field-dark-border dark:bg-[#333333]',
 };
 
 const textVariantClasses: Record<ButtonVariant, string> = {
