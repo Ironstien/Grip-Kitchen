@@ -138,6 +138,36 @@ export function getAllowedRecipeUnits(
   return getReachableUnits(stockUnit, conversions);
 }
 
+/** Units pickable in recipe forms: master ingredient units plus conversion rule endpoints. */
+export function getIngredientSelectableUnits(
+  ingredient: {
+    stock_unit: string;
+    purchase_unit: string;
+    ingredient_conversions?: IngredientConversion[];
+  },
+): string[] {
+  const units = new Set<string>();
+
+  if (ingredient.stock_unit.trim()) {
+    units.add(ingredient.stock_unit.trim());
+  }
+
+  if (ingredient.purchase_unit.trim()) {
+    units.add(ingredient.purchase_unit.trim());
+  }
+
+  for (const rule of ingredient.ingredient_conversions ?? []) {
+    if (rule.from_unit.trim()) {
+      units.add(rule.from_unit.trim());
+    }
+    if (rule.to_unit.trim()) {
+      units.add(rule.to_unit.trim());
+    }
+  }
+
+  return Array.from(units).sort((a, b) => a.localeCompare(b));
+}
+
 export function canConvertIngredientUnits(
   fromUnit: string,
   toUnit: string,

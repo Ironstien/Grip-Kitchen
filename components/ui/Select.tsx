@@ -12,6 +12,7 @@ type SelectProps = {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  disabled?: boolean;
 };
 
 export function Select({
@@ -21,6 +22,7 @@ export function Select({
   onChange,
   placeholder = 'Select...',
   className,
+  disabled = false,
 }: SelectProps) {
   const [open, setOpen] = useState(false);
 
@@ -38,9 +40,11 @@ export function Select({
       ) : null}
       <Pressable
         onPress={() => setOpen(true)}
+        disabled={disabled || options.length === 0}
         className={cn(
           'min-h-[32px] flex-row items-center justify-between px-2 py-1',
           fieldSurfaceClassName,
+          (disabled || options.length === 0) && 'opacity-60',
         )}>
         <Text
           className={cn('flex-1 text-sm', !value && 'text-text-secondary dark:text-text-dark-secondary')}
