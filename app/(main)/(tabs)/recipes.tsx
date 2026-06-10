@@ -3,7 +3,7 @@ import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { RecipeGrid } from '@/components/recipes/RecipeGrid';
-import { EmptyState } from '@/components/ui';
+import { Button, EmptyState } from '@/components/ui';
 import { Input } from '@/components/ui/Input';
 import { Text, Heading } from '@/components/ui/Text';
 import { OptionSelect } from '@/components/ui/Form';
@@ -29,16 +29,24 @@ export default function RecipesScreen() {
   });
 
   const ingredientNames = useMemo(() => ingredients.map((item) => item.name), [ingredients]);
+  const isDefaultFilters =
+    !search.trim() && maxTime === null && dietaryTag === null && ingredientFilter === null;
 
   return (
     <ScrollView
       className="flex-1 bg-surface dark:bg-surface-dark"
       contentContainerClassName={`flex-grow ${isDesktop ? 'px-8 py-6' : 'px-5 py-5'}`}>
-      <View className={isDesktop ? 'mb-4' : 'mb-6'}>
-        <Heading level={isDesktop ? 1 : 2}>Recipes</Heading>
-        <Text variant="bodySecondary" className="mt-1">
-          Browse recipes with stock status and cost breakdowns.
-        </Text>
+      <View
+        className={`${isDesktop ? 'mb-4' : 'mb-6'} flex-row items-start justify-between gap-4`}>
+        <View className="flex-1">
+          <Heading level={isDesktop ? 1 : 2}>Recipes</Heading>
+          <Text variant="bodySecondary" className="mt-1">
+            Browse recipes with stock status and cost breakdowns.
+          </Text>
+        </View>
+        {isDesktop && isDefaultFilters && (
+          <Button label="Add recipe" onPress={() => router.push('/(main)/recipes/new')} />
+        )}
       </View>
 
       <Input
