@@ -1,14 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, ScrollView, View } from 'react-native';
 
-import { FormField, OptionSelect } from '@/components/ui/Form';
+import { CategorySelect } from '@/components/ui/CategorySelect';
+import { FormField } from '@/components/ui/Form';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { UnitSelect } from '@/components/ui/UnitSelect';
 import { Text } from '@/components/ui/Text';
-import { INVENTORY_CATEGORIES } from '@/constants/inventory';
 import { useIngredientMutations } from '@/hooks/useIngredients';
+import { useUserCategories } from '@/hooks/useUserCategories';
 import { useUserUnits } from '@/hooks/useUserUnits';
+import { isMasterCategoryName } from '@/lib/categories';
 import { isMasterUnitSymbol } from '@/lib/units';
 import type { Ingredient } from '@/types/database';
 
@@ -21,15 +23,26 @@ type IngredientFormProps = {
 export function IngredientForm({ ingredient, onSaved, onCancel }: IngredientFormProps) {
   const { create, update, remove } = useIngredientMutations();
   const { data: masterUnits = [] } = useUserUnits();
+  const { data: masterCategories = [] } = useUserCategories();
 
   const [name, setName] = useState(ingredient?.name ?? '');
-  const [category, setCategory] = useState(ingredient?.category ?? INVENTORY_CATEGORIES[0]);
+  const [category, setCategory] = useState(ingredient?.category ?? masterCategories[0]?.name ?? '');
   const [unit, setUnit] = useState(ingredient?.unit_of_measure ?? 'each');
   const [pricePerUnit, setPricePerUnit] = useState(String(ingredient?.price_per_unit ?? 0));
   const [priceUnit, setPriceUnit] = useState(
     ingredient?.price_unit_of_measure ?? ingredient?.unit_of_measure ?? 'each',
   );
   const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (!ingredient && masterCategories.length > 0 && !isMasterCategoryName(category, masterCategories)) {
+      setCategory(
+        masterCategories.find((entry) => entry.name === 'Pantry')?.name ??
+          masterCategories[0]?.name ??
+          '',
+      );
+    }
+  }, [category, ingredient, masterCategories]);
 
   const validate = () => {
     if (!name.trim()) {
@@ -40,6 +53,11 @@ export function IngredientForm({ ingredient, onSaved, onCancel }: IngredientForm
     const parsedPrice = Number(pricePerUnit);
     if (Number.isNaN(parsedPrice) || parsedPrice < 0) {
       Alert.alert('Invalid price', 'Enter a valid price amount.');
+      return false;
+    }
+
+    if (!isMasterCategoryName(category, masterCategories)) {
+      Alert.alert('Unknown category', 'Choose a category from the Master Category List.');
       return false;
     }
 
@@ -114,12 +132,7 @@ export function IngredientForm({ ingredient, onSaved, onCancel }: IngredientForm
         <Input value={name} onChangeText={setName} placeholder="e.g. Plain flour" />
       </FormField>
 
-      <OptionSelect
-        label="Category"
-        value={category}
-        options={[...INVENTORY_CATEGORIES]}
-        onChange={setCategory}
-      />
+      <CategorySelect label="Category" value={category} onChange={setCategory} />
 
       <UnitSelect label="Default unit" value={unit} onChange={setUnit} />
 

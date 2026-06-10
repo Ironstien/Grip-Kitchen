@@ -1,15 +1,27 @@
-export const INVENTORY_CATEGORIES = [
+/** Default categories seeded into Master Category List on first use. */
+export const DEFAULT_USER_CATEGORIES = [
   'Produce',
   'Pantry',
-  'Dairy',
+  'Dairy & Eggs',
   'Meat & Seafood',
   'Frozen',
+  'Bakery',
   'Beverages',
   'Snacks',
+  'Deli',
+  'Canned & Jarred',
+  'Condiments & Sauces',
+  'Spices & Seasonings',
+  'Baking',
+  'International',
+  'Health & Dietary',
   'Other',
 ] as const;
 
-export type InventoryCategory = (typeof INVENTORY_CATEGORIES)[number];
+/** @deprecated Use Master Category List via useUserCategories() */
+export const INVENTORY_CATEGORIES = DEFAULT_USER_CATEGORIES;
+
+export type InventoryCategory = (typeof DEFAULT_USER_CATEGORIES)[number];
 
 export const METRIC_UNITS = ['g', 'kg', 'ml', 'L', 'each'] as const;
 

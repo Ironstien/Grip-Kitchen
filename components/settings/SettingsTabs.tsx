@@ -4,7 +4,7 @@ import { Text } from '@/components/ui/Text';
 import { useResponsive } from '@/hooks/useResponsive';
 import { cn } from '@/lib/cn';
 
-export type SettingsTab = 'general' | 'master' | 'units' | 'locations';
+export type SettingsTab = 'general' | 'master' | 'categories' | 'units' | 'locations';
 
 type SettingsTabsProps = {
   activeTab: SettingsTab;
@@ -13,7 +13,8 @@ type SettingsTabsProps = {
 
 const TABS: Array<{ id: SettingsTab; label: string }> = [
   { id: 'general', label: 'General' },
-  { id: 'master', label: 'Master list' },
+  { id: 'master', label: 'Master Ingredient List' },
+  { id: 'categories', label: 'Master Category List' },
   { id: 'units', label: 'Master Units List' },
   { id: 'locations', label: 'Locations' },
 ];

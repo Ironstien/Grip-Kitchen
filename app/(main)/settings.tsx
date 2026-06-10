@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Alert, ScrollView, View } from 'react-native';
 
+import { CategoriesManager } from '@/components/settings/CategoriesManager';
 import { MasterIngredientsManager } from '@/components/settings/MasterIngredientsManager';
 import { SettingsTabs, type SettingsTab } from '@/components/settings/SettingsTabs';
 import { StorageLocationsManager } from '@/components/settings/StorageLocationsManager';
@@ -37,7 +38,7 @@ export default function SettingsScreen() {
       <View className="mb-6">
         <Heading level={isDesktop ? 1 : 2}>Settings</Heading>
         <Text variant="bodySecondary" className="mt-1">
-          Manage your master ingredient list, master units list, locations, and preferences.
+          Manage your master ingredient, category, and unit lists, locations, and preferences.
         </Text>
       </View>
 
@@ -45,7 +46,11 @@ export default function SettingsScreen() {
 
       <View
         className={
-          (activeTab === 'master' || activeTab === 'units') && isDesktop ? 'w-full' : 'max-w-md'
+          (activeTab === 'master' || activeTab === 'units') && isDesktop
+            ? 'w-full'
+            : activeTab === 'categories' && isDesktop
+              ? 'max-w-2xl'
+              : 'max-w-md'
         }>
         {activeTab === 'general' && (
           <View className="gap-6">
@@ -82,6 +87,8 @@ export default function SettingsScreen() {
         )}
 
         {activeTab === 'master' && <MasterIngredientsManager />}
+
+        {activeTab === 'categories' && <CategoriesManager />}
 
         {activeTab === 'units' && <UnitsManager />}
 

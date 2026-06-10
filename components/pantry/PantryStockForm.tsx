@@ -163,7 +163,7 @@ export function PantryStockForm({ item, onSaved, onCancel, dense = false }: Pant
             {item.category} · {item.unit_of_measure}
           </Text>
           <Text variant="caption" className="mt-1">
-            Edit ingredient details in Settings → Master list.
+            Edit ingredient details in Settings → Master Ingredient List.
           </Text>
         </View>
       ) : (

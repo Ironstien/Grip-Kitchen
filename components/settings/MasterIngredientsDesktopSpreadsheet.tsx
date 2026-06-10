@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, TextInput, View } from 'react-native';
 
+import { CategorySelect } from '@/components/ui/CategorySelect';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
 import { UnitSelect } from '@/components/ui/UnitSelect';
-import { INVENTORY_CATEGORIES } from '@/constants/inventory';
 import { useIngredientMutations } from '@/hooks/useIngredients';
+import { useUserCategories } from '@/hooks/useUserCategories';
 import { useUserUnits } from '@/hooks/useUserUnits';
+import { isMasterCategoryName, resolveMasterCategoryName } from '@/lib/categories';
 import { cn } from '@/lib/cn';
 import { formatErrorMessage } from '@/lib/errors';
 import { isMasterUnitSymbol, resolveMasterUnitSymbol } from '@/lib/units';
@@ -31,7 +33,7 @@ type NewRowDraft = {
   price_unit_of_measure: string;
 };
 
-const UNIT_KEYS = new Set<SortKey>(['unit_of_measure', 'price_unit_of_measure']);
+const PICKER_KEYS = new Set<SortKey>(['category', 'unit_of_measure', 'price_unit_of_measure']);
 
 const columns: Array<{ key: SortKey; label: string; flex: number }> = [
   { key: 'name', label: 'Name', flex: 2.2 },
@@ -49,12 +51,23 @@ function getDefaultUnit(masterUnits: Array<{ symbol: string }>): string {
   );
 }
 
-function createDefaultNewRow(masterUnits: Array<{ symbol: string }>): NewRowDraft {
+function getDefaultCategory(masterCategories: Array<{ name: string }>): string {
+  return (
+    masterCategories.find((category) => category.name === 'Pantry')?.name ??
+    masterCategories[0]?.name ??
+    ''
+  );
+}
+
+function createDefaultNewRow(
+  masterUnits: Array<{ symbol: string }>,
+  masterCategories: Array<{ name: string }>,
+): NewRowDraft {
   const defaultUnit = getDefaultUnit(masterUnits);
 
   return {
     name: '',
-    category: INVENTORY_CATEGORIES[0],
+    category: getDefaultCategory(masterCategories),
     unit_of_measure: defaultUnit,
     price_per_unit: '0',
     price_unit_of_measure: defaultUnit,
@@ -65,6 +78,7 @@ export function MasterIngredientsDesktopSpreadsheet({
   ingredients,
 }: MasterIngredientsDesktopSpreadsheetProps) {
   const { data: masterUnits = [] } = useUserUnits();
+  const { data: masterCategories = [] } = useUserCategories();
   const [sortKey, setSortKey] = useState<SortKey>('name');
   const [sortAsc, setSortAsc] = useState(true);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -76,7 +90,7 @@ export function MasterIngredientsDesktopSpreadsheet({
   const { create, update, remove } = useIngredientMutations();
 
   useEffect(() => {
-    if (masterUnits.length === 0) {
+    if (masterUnits.length === 0 || masterCategories.length === 0) {
       return;
     }
 
@@ -85,9 +99,12 @@ export function MasterIngredientsDesktopSpreadsheet({
         return current;
       }
 
-      const defaults = createDefaultNewRow(masterUnits);
+      const defaults = createDefaultNewRow(masterUnits, masterCategories);
       return {
         ...defaults,
+        category: isMasterCategoryName(current.category, masterCategories)
+          ? current.category
+          : defaults.category,
         unit_of_measure: isMasterUnitSymbol(current.unit_of_measure, masterUnits)
           ? current.unit_of_measure
           : defaults.unit_of_measure,
@@ -96,7 +113,7 @@ export function MasterIngredientsDesktopSpreadsheet({
           : defaults.price_unit_of_measure,
       };
     });
-  }, [masterUnits]);
+  }, [masterCategories, masterUnits]);
 
   const sortedIngredients = useMemo(() => {
     const copy = [...ingredients];
@@ -162,15 +179,18 @@ export function MasterIngredientsDesktopSpreadsheet({
       return null;
     }
 
-    if (key === 'category' && !value.trim()) {
-      return 'Category is required.';
+    if (key === 'category') {
+      if (!isMasterCategoryName(value, masterCategories)) {
+        return 'Choose a category from the Master Category List.';
+      }
+      return null;
     }
 
     return null;
   };
 
   const startEditing = (ingredient: Ingredient, key: SortKey) => {
-    if (UNIT_KEYS.has(key)) {
+    if (PICKER_KEYS.has(key)) {
       return;
     }
 
@@ -228,6 +248,19 @@ export function MasterIngredientsDesktopSpreadsheet({
     }
   };
 
+  const handleCategoryChange = async (ingredient: Ingredient, category: string) => {
+    if (ingredient.category === category) {
+      return;
+    }
+
+    try {
+      await update.mutateAsync({ id: ingredient.id, input: { category } });
+    } catch (error) {
+      const message = formatErrorMessage(error, 'Update failed.');
+      Alert.alert('Update failed', message);
+    }
+  };
+
   const handleUnitChange = async (
     ingredient: Ingredient,
     key: 'unit_of_measure' | 'price_unit_of_measure',
@@ -251,6 +284,7 @@ export function MasterIngredientsDesktopSpreadsheet({
       return;
     }
 
+    const categoryName = resolveMasterCategoryName(newRow.category, masterCategories);
     const unitSymbol = resolveMasterUnitSymbol(newRow.unit_of_measure, masterUnits);
     const priceUnitSymbol = resolveMasterUnitSymbol(newRow.price_unit_of_measure, masterUnits);
 
@@ -262,9 +296,10 @@ export function MasterIngredientsDesktopSpreadsheet({
       validateField('price_unit_of_measure', newRow.price_unit_of_measure),
     ].filter(Boolean);
 
-    if (validationErrors.length > 0 || !unitSymbol || !priceUnitSymbol) {
+    if (validationErrors.length > 0 || !categoryName || !unitSymbol || !priceUnitSymbol) {
       const message =
-        validationErrors[0] ?? 'Choose units from the Master Units List in Settings.';
+        validationErrors[0] ??
+        'Choose category and units from the Master lists in Settings.';
       setNewRowError(message);
       Alert.alert('Cannot add row', message);
       return;
@@ -275,12 +310,12 @@ export function MasterIngredientsDesktopSpreadsheet({
       setNewRowError(null);
       await create.mutateAsync({
         name,
-        category: newRow.category.trim(),
+        category: categoryName,
         unit_of_measure: unitSymbol,
         price_per_unit: Number(newRow.price_per_unit),
         price_unit_of_measure: priceUnitSymbol,
       });
-      setNewRow(createDefaultNewRow(masterUnits));
+      setNewRow(createDefaultNewRow(masterUnits, masterCategories));
     } catch (error) {
       const message = formatErrorMessage(error, 'Could not create ingredient.');
       setNewRowError(message);
@@ -363,6 +398,17 @@ export function MasterIngredientsDesktopSpreadsheet({
     );
   };
 
+  const renderCategoryCell = (ingredient: Ingredient, flex: number) => (
+    <View key="category" style={{ flex }} className="px-2">
+      <CategorySelect
+        compact
+        value={ingredient.category}
+        categories={masterCategories}
+        onChange={(category) => void handleCategoryChange(ingredient, category)}
+      />
+    </View>
+  );
+
   const renderUnitCell = (
     ingredient: Ingredient,
     key: 'unit_of_measure' | 'price_unit_of_measure',
@@ -392,6 +438,17 @@ export function MasterIngredientsDesktopSpreadsheet({
     </View>
   );
 
+  const renderNewRowCategoryCell = (flex: number) => (
+    <View key="category" style={{ flex }} className="px-2">
+      <CategorySelect
+        compact
+        value={newRow.category}
+        categories={masterCategories}
+        onChange={(category) => updateNewRowField('category', category)}
+      />
+    </View>
+  );
+
   const renderNewRowUnitCell = (key: 'unit_of_measure' | 'price_unit_of_measure', flex: number) => (
     <View key={key} style={{ flex }} className="px-2">
       <UnitSelect
@@ -403,10 +460,11 @@ export function MasterIngredientsDesktopSpreadsheet({
     </View>
   );
 
-  if (masterUnits.length === 0) {
+  if (masterUnits.length === 0 || masterCategories.length === 0) {
     return (
       <Text variant="bodySecondary">
-        Add units in Settings → Master Units List before adding ingredients.
+        Add categories and units in Settings → Master Category List and Master Units List before
+        adding ingredients.
       </Text>
     );
   }
@@ -454,6 +512,10 @@ export function MasterIngredientsDesktopSpreadsheet({
             </Pressable>
 
             {columns.map((column) => {
+              if (column.key === 'category') {
+                return renderCategoryCell(ingredient, column.flex);
+              }
+
               if (column.key === 'unit_of_measure' || column.key === 'price_unit_of_measure') {
                 return renderUnitCell(ingredient, column.key, column.flex);
               }
@@ -479,7 +541,7 @@ export function MasterIngredientsDesktopSpreadsheet({
             <Text variant="caption">+</Text>
           </View>
           {renderNewRowTextCell('name', columns[0].flex, 'New ingredient...')}
-          {renderNewRowTextCell('category', columns[1].flex, 'Category')}
+          {renderNewRowCategoryCell(columns[1].flex)}
           {renderNewRowUnitCell('unit_of_measure', columns[2].flex)}
           {renderNewRowTextCell('price_per_unit', columns[3].flex, '0')}
           {renderNewRowUnitCell('price_unit_of_measure', columns[4].flex)}
@@ -501,8 +563,8 @@ export function MasterIngredientsDesktopSpreadsheet({
       ) : null}
 
       <Text variant="caption">
-        Click any cell to edit. Unit columns use the Master Units List. Add a new ingredient in the
-        bottom row.
+        Click name or price to edit. Category and unit columns use the Master lists. Add a new
+        ingredient in the bottom row.
       </Text>
     </View>
   );

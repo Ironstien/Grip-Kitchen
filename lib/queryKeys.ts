@@ -1,5 +1,6 @@
 export const queryKeys = {
   userUnits: ['userUnits'] as const,
+  userCategories: ['userCategories'] as const,
   ingredients: ['ingredients'] as const,
   ingredient: (id: string) => ['ingredients', id] as const,
   storageLocations: ['storageLocations'] as const,

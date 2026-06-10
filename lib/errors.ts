@@ -27,7 +27,11 @@ export function formatErrorMessage(error: unknown, fallback = 'Something went wr
       pgError.message?.includes('does not exist') ||
       pgError.message?.includes('schema cache')
     ) {
-      return 'Database is missing the ingredients table. In Supabase → SQL Editor, run supabase/migrations/005_ingredients_master_list.sql';
+      if (pgError.message?.includes('user_categories')) {
+        return 'Database is missing the categories table. In Supabase → SQL Editor, run supabase/migrations/007_user_categories.sql';
+      }
+
+      return 'Database is missing a required table. In Supabase → SQL Editor, run the latest migrations from supabase/migrations/';
     }
 
     if (typeof pgError.message === 'string' && pgError.message.length > 0) {

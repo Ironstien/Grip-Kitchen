@@ -39,7 +39,7 @@ export default function PantryScreen() {
       <View className={isDesktop ? 'mb-4' : 'mb-6'}>
         <Heading level={isDesktop ? 1 : 2}>Pantry</Heading>
         <Text variant="bodySecondary" className="mt-1">
-          Add or remove stock. Edit ingredient details in Settings → Master list.
+          Add or remove stock. Edit ingredient details in Settings → Master Ingredient List.
         </Text>
       </View>
 

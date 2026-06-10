@@ -49,7 +49,7 @@ export function MasterIngredientsManager() {
 
   return (
     <View className="gap-4">
-      <Text variant="label">Master ingredient list</Text>
+      <Text variant="label">Master Ingredient List</Text>
       <Text variant="bodySecondary">
         Add and edit ingredient details here — name, category, units, and pricing. The pantry only
         tracks what you have in stock.

@@ -15,6 +15,7 @@ import type {
 export const tables = {
   users: 'users',
   userUnits: 'user_units',
+  userCategories: 'user_categories',
   ingredients: 'ingredients',
   storageLocations: 'storage_locations',
   inventory: 'inventory',

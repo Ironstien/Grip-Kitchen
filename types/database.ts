@@ -65,6 +65,38 @@ export type Database = {
           },
         ];
       };
+      user_categories: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          sort_order: number;
+          is_system: boolean;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          sort_order?: number;
+          is_system?: boolean;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          sort_order?: number;
+          is_system?: boolean;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'user_categories_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       storage_locations: {
         Row: {
           id: string;
@@ -445,6 +477,7 @@ export type TablesUpdate<T extends keyof Database['public']['Tables']> =
 
 export type UserProfile = Tables<'users'>;
 export type UserUnit = Tables<'user_units'>;
+export type UserCategory = Tables<'user_categories'>;
 export type Ingredient = Tables<'ingredients'>;
 export type StorageLocation = Tables<'storage_locations'>;
 export type InventoryItem = Tables<'inventory'>;
