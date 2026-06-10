@@ -12,7 +12,7 @@ export function Card({ className, dense = false, children, ...props }: CardProps
     <View
       className={cn(
         'rounded-card border border-border bg-surface shadow-card dark:border-border-dark dark:bg-surface-dark',
-        dense ? 'p-3' : 'p-5',
+        dense ? 'p-2' : 'p-3',
         className,
       )}
       {...props}>

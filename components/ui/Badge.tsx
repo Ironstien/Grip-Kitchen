@@ -29,7 +29,7 @@ export function Badge({ label, status = 'neutral', className }: BadgeProps) {
   return (
     <View
       className={cn(
-        'self-start rounded-full border px-2.5 py-1',
+        'self-start rounded-full border px-1.5 py-0.5',
         statusClasses[status],
         className,
       )}>

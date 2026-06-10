@@ -10,6 +10,7 @@ import { Button } from '@/components/ui';
 import { Heading, Text } from '@/components/ui/Text';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { pageHeaderMarginClass, pagePaddingClass } from '@/constants/theme';
 import { useResponsive } from '@/hooks/useResponsive';
 
 export default function SettingsScreen() {
@@ -34,10 +35,10 @@ export default function SettingsScreen() {
   return (
     <ScrollView
       className="flex-1 bg-surface dark:bg-surface-dark"
-      contentContainerClassName={`flex-grow ${isDesktop ? 'px-8 py-6' : 'px-5 py-5'}`}>
-      <View className="mb-6">
+      contentContainerClassName={`flex-grow ${pagePaddingClass(isDesktop)}`}>
+      <View className={pageHeaderMarginClass(isDesktop)}>
         <Heading level={isDesktop ? 1 : 2}>Settings</Heading>
-        <Text variant="bodySecondary" className="mt-1">
+        <Text variant="caption" className="mt-0.5">
           Manage your master ingredient, category, and unit lists, locations, and preferences.
         </Text>
       </View>
@@ -53,7 +54,7 @@ export default function SettingsScreen() {
               : 'max-w-md'
         }>
         {activeTab === 'general' && (
-          <View className="gap-6">
+          <View className="gap-4">
             <View>
               <Text variant="label" className="mb-2">
                 Account

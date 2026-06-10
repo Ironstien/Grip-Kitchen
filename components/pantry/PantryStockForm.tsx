@@ -193,7 +193,7 @@ export function PantryStockForm({ item, onSaved, onCancel, dense = false }: Pant
       <FormField label="Expiration date">
         <Pressable
           onPress={() => setShowDatePicker(true)}
-          className="min-h-[48px] justify-center rounded-button border border-border px-4 dark:border-border-dark">
+          className="min-h-[32px] justify-center rounded-button border border-border px-2 dark:border-border-dark">
           <Text>{expirationDate ? formatDateInput(expirationDate) : 'No expiration date'}</Text>
         </Pressable>
         {expirationDate && (

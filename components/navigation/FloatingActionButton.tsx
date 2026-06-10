@@ -97,8 +97,8 @@ export function FloatingActionButton() {
       accessibilityRole="button"
       accessibilityLabel={action.label}
       onPress={handlePress}
-      className="absolute bottom-24 right-5 z-50 h-14 w-14 items-center justify-center rounded-full bg-brand shadow-fab dark:bg-brand-dark">
-      <Ionicons name="add" size={28} color="#FFFFFF" />
+      className="absolute bottom-20 right-4 z-50 h-11 w-11 items-center justify-center rounded-full bg-brand shadow-fab dark:bg-brand-dark">
+      <Ionicons name="add" size={24} color="#FFFFFF" />
     </Pressable>
   );
 }

@@ -479,7 +479,7 @@ export function MasterIngredientsDesktopSpreadsheet({
       )}
 
       <View className="w-full">
-        <View className="w-full flex-row border-b border-border bg-surface-secondary px-2 py-2 dark:border-border-dark dark:bg-surface-dark-secondary">
+        <View className="w-full flex-row border-b border-border bg-surface-secondary px-2 py-1.5 dark:border-border-dark dark:bg-surface-dark-secondary">
           <View className="w-10" />
           {columns.map((column) => (
             <Pressable
@@ -501,7 +501,7 @@ export function MasterIngredientsDesktopSpreadsheet({
         {sortedIngredients.map((ingredient) => (
           <View
             key={ingredient.id}
-            className="w-full flex-row items-center border-b border-border px-2 py-2 dark:border-border-dark">
+            className="w-full flex-row items-center border-b border-border px-2 py-1.5 dark:border-border-dark">
             <Pressable onPress={() => toggleSelected(ingredient.id)} className="w-10 items-center">
               <View
                 className={cn(
@@ -536,7 +536,7 @@ export function MasterIngredientsDesktopSpreadsheet({
           </View>
         ))}
 
-        <View className="w-full flex-row items-center border-b border-border bg-brand/5 px-2 py-2 dark:border-border-dark dark:bg-brand-dark/10">
+        <View className="w-full flex-row items-center border-b border-border bg-brand/5 px-2 py-1.5 dark:border-border-dark dark:bg-brand-dark/10">
           <View className="w-10 items-center">
             <Text variant="caption">+</Text>
           </View>

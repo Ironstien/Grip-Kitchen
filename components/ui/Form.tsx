@@ -25,7 +25,7 @@ export function OptionSelect({
   return (
     <View className={className}>
       {label ? (
-        <Text variant="label" className="mb-2">
+        <Text variant="label" className="mb-1">
           {label}
         </Text>
       ) : null}
@@ -38,7 +38,7 @@ export function OptionSelect({
               key={option}
               onPress={() => onChange(option)}
               className={cn(
-                'rounded-button border px-3 py-2',
+                'rounded-button border px-2 py-1',
                 selected
                   ? 'border-brand bg-brand/10 dark:border-brand-dark'
                   : 'border-border dark:border-border-dark',
@@ -91,12 +91,12 @@ export function ConfirmModal({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <View className="flex-1 items-center justify-center bg-black/40 px-6">
-        <View className="w-full max-w-md rounded-card border border-border bg-surface p-5 dark:border-border-dark dark:bg-surface-dark">
-          <Text className="mb-2 text-lg font-semibold">{title}</Text>
-          <Text variant="bodySecondary" className="mb-5">
+        <View className="w-full max-w-md rounded-card border border-border bg-surface p-3 dark:border-border-dark dark:bg-surface-dark">
+          <Text className="mb-1 text-base font-semibold">{title}</Text>
+          <Text variant="bodySecondary" className="mb-3">
             {message}
           </Text>
-          <View className="flex-row gap-3">
+          <View className="flex-row gap-2">
             <Button label="Cancel" variant="ghost" onPress={onCancel} className="flex-1" />
             <Button label={confirmLabel} onPress={onConfirm} className="flex-1" />
           </View>

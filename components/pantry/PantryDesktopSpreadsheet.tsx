@@ -170,7 +170,7 @@ export function PantryDesktopSpreadsheet({
   };
 
   return (
-    <View className="w-full gap-3">
+    <View className="w-full gap-2">
       {selectedIds.size > 0 && (
         <View className="flex-row items-center justify-between">
           <Text variant="label">{selectedIds.size} selected</Text>
@@ -179,7 +179,7 @@ export function PantryDesktopSpreadsheet({
       )}
 
       <View className="w-full">
-        <View className="w-full flex-row border-b border-border bg-surface-secondary px-2 py-2 dark:border-border-dark dark:bg-surface-dark-secondary">
+        <View className="w-full flex-row border-b border-border bg-surface-secondary px-2 py-1.5 dark:border-border-dark dark:bg-surface-dark-secondary">
           <View className="w-10" />
           {columns.map((column) => (
             <Pressable
@@ -211,7 +211,7 @@ export function PantryDesktopSpreadsheet({
             <View
               key={item.id}
               className={cn(
-                'w-full flex-row items-center border-b border-border px-2 py-2 dark:border-border-dark',
+                'w-full flex-row items-center border-b border-border px-2 py-1.5 dark:border-border-dark',
                 rowClass,
               )}>
               <Pressable onPress={() => toggleSelected(item.id)} className="w-10 items-center">
@@ -251,10 +251,10 @@ export function PantryDesktopSpreadsheet({
                         onChangeText={setDraftValue}
                         onBlur={() => void commitEdit()}
                         onSubmitEditing={() => void commitEdit()}
-                        className="rounded border border-brand px-2 py-1 text-sm text-text dark:text-text-dark"
+                        className="rounded border border-brand px-1.5 py-0.5 text-xs text-text dark:text-text-dark"
                       />
                     ) : (
-                      <Text className="text-sm">
+                      <Text className="text-xs">
                         {column.key === 'expiration_date'
                           ? formatExpirationDate(item.expiration_date)
                           : rawValue}

@@ -13,7 +13,7 @@ type IconButtonProps = PressableProps & {
 
 export function IconButton({
   name,
-  size = 22,
+  size = 18,
   className,
   iconColor,
   ...props
@@ -24,7 +24,7 @@ export function IconButton({
     <Pressable
       accessibilityRole="button"
       className={cn(
-        'h-11 w-11 items-center justify-center rounded-button active:opacity-70',
+        'h-8 w-8 items-center justify-center rounded-button active:opacity-70',
         className,
       )}
       {...props}>

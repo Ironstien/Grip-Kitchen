@@ -23,7 +23,7 @@ export function CategorySelect({
   className,
   categories: categoriesProp,
   placeholder = 'Select category',
-  compact = false,
+  compact = true,
 }: CategorySelectProps) {
   const { data: fetchedCategories = [], isLoading } = useUserCategories();
   const [open, setOpen] = useState(false);
@@ -64,7 +64,7 @@ export function CategorySelect({
         disabled={categories.length === 0}
         className={cn(
           'flex-row items-center justify-between border border-border bg-surface dark:border-border-dark dark:bg-surface-dark-secondary',
-          compact ? 'min-h-[32px] rounded px-2 py-1' : 'min-h-[48px] rounded-button px-4',
+          'min-h-[32px] rounded px-2 py-1',
           categories.length === 0 && 'opacity-60',
         )}>
         <Text

@@ -18,9 +18,9 @@ const variantClasses: Record<ButtonVariant, string> = {
 };
 
 const textVariantClasses: Record<ButtonVariant, string> = {
-  primary: 'text-white font-semibold',
-  ghost: 'text-text dark:text-text-dark font-medium',
-  secondary: 'text-text dark:text-text-dark font-medium',
+  primary: 'text-sm text-white font-semibold',
+  ghost: 'text-sm text-text dark:text-text-dark font-medium',
+  secondary: 'text-sm text-text dark:text-text-dark font-medium',
 };
 
 export function Button({
@@ -36,7 +36,7 @@ export function Button({
       accessibilityRole="button"
       disabled={disabled}
       className={cn(
-        'min-h-[48px] items-center justify-center rounded-button px-5 py-3 active:opacity-80',
+        'min-h-[32px] items-center justify-center rounded-button px-3 py-1.5 active:opacity-80',
         variantClasses[variant],
         disabled && 'opacity-50',
         className,

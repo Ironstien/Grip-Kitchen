@@ -3,6 +3,7 @@ import { Href, usePathname, useRouter } from 'expo-router';
 import { Pressable, View } from 'react-native';
 
 import { Text } from '@/components/ui/Text';
+import { SIDEBAR_WIDTH } from '@/constants/theme';
 import { useTheme } from '@/contexts/ThemeContext';
 
 type NavItem = {
@@ -65,14 +66,14 @@ export function DesktopSidebar() {
 
   return (
     <View
-      className="h-full w-[240px] border-r border-border bg-surface-secondary dark:border-border-dark dark:bg-[#141414]"
-      style={{ backgroundColor: palette.sidebar }}>
-      <View className="border-b border-border px-5 py-6 dark:border-border-dark">
-        <Text className="text-lg font-bold text-text dark:text-text-dark">Grip Kitchen</Text>
+      className="h-full border-r border-border bg-surface-secondary dark:border-border-dark dark:bg-[#141414]"
+      style={{ width: SIDEBAR_WIDTH, backgroundColor: palette.sidebar }}>
+      <View className="border-b border-border px-3 py-3 dark:border-border-dark">
+        <Text className="text-sm font-bold text-text dark:text-text-dark">Grip Kitchen</Text>
         <Text variant="caption">Plan. Cook. Shop.</Text>
       </View>
 
-      <View className="flex-1 px-3 py-4">
+      <View className="flex-1 px-2 py-2">
         {items.map((item) => {
           const active = isActive(pathname, item);
           return (
@@ -80,16 +81,16 @@ export function DesktopSidebar() {
               key={item.label}
               accessibilityRole="button"
               onPress={() => router.push(item.href)}
-              className={`mb-1 flex-row items-center rounded-card px-3 py-3 ${
+              className={`mb-0.5 flex-row items-center rounded-card px-2 py-2 ${
                 active ? 'bg-black/5 dark:bg-white/10' : ''
               }`}>
               <Ionicons
                 name={item.icon}
-                size={20}
+                size={16}
                 color={active ? palette.brand : palette.textSecondary}
               />
               <Text
-                className={`ml-3 text-sm ${
+                className={`ml-2 text-xs ${
                   active
                     ? 'font-semibold text-text dark:text-text-dark'
                     : 'text-text-secondary dark:text-text-dark-secondary'

@@ -10,10 +10,10 @@ type TextProps = RNTextProps & {
 };
 
 const variantClasses: Record<TextVariant, string> = {
-  body: 'text-base text-text dark:text-text-dark',
-  bodySecondary: 'text-base text-text-secondary dark:text-text-dark-secondary',
-  caption: 'text-sm text-text-muted dark:text-text-dark-secondary',
-  label: 'text-sm font-medium text-text dark:text-text-dark',
+  body: 'text-sm text-text dark:text-text-dark',
+  bodySecondary: 'text-sm text-text-secondary dark:text-text-dark-secondary',
+  caption: 'text-xs text-text-muted dark:text-text-dark-secondary',
+  label: 'text-xs font-medium text-text dark:text-text-dark',
 };
 
 export function Text({ variant = 'body', className, ...props }: TextProps) {
@@ -26,9 +26,9 @@ type HeadingProps = RNTextProps & {
 };
 
 const headingClasses: Record<1 | 2 | 3, string> = {
-  1: 'text-3xl font-bold text-text dark:text-text-dark',
-  2: 'text-2xl font-semibold text-text dark:text-text-dark',
-  3: 'text-xl font-semibold text-text dark:text-text-dark',
+  1: 'text-xl font-bold text-text dark:text-text-dark',
+  2: 'text-lg font-semibold text-text dark:text-text-dark',
+  3: 'text-base font-semibold text-text dark:text-text-dark',
 };
 
 export function Heading({ level = 1, className, ...props }: HeadingProps) {

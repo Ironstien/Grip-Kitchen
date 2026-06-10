@@ -4,6 +4,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { PantryStockForm } from '@/components/pantry/PantryStockForm';
 import { IconButton } from '@/components/ui/IconButton';
 import { Heading, Text } from '@/components/ui/Text';
+import { pagePaddingClass } from '@/constants/theme';
 import { useInventoryItem } from '@/hooks/useInventory';
 import { useResponsive } from '@/hooks/useResponsive';
 
@@ -14,13 +15,13 @@ export default function EditInventoryItemScreen() {
   const { data: item, isLoading } = useInventoryItem(id);
 
   return (
-    <View className={`flex-1 bg-surface dark:bg-surface-dark ${isDesktop ? 'px-8 py-6' : 'px-5 py-5'}`}>
+    <View className={`flex-1 bg-surface dark:bg-surface-dark ${pagePaddingClass(isDesktop)}`}>
       <Stack.Screen options={{ headerShown: false }} />
-      <View className="mb-4 flex-row items-center gap-3">
+      <View className="mb-3 flex-row items-center gap-2">
         <IconButton name="arrow-back" accessibilityLabel="Go back" onPress={() => router.back()} />
         <View className="flex-1">
           <Heading level={isDesktop ? 1 : 2}>Adjust stock</Heading>
-          <Text variant="bodySecondary">{item?.name ?? 'Update quantity, location, and expiry.'}</Text>
+          <Text variant="caption">{item?.name ?? 'Update quantity, location, and expiry.'}</Text>
         </View>
       </View>
 

@@ -65,7 +65,7 @@ export function LocationFilterTabs({
   );
 
   if (isDesktop) {
-    return <View className="mb-4 flex-row flex-wrap gap-1 self-start">{tabs}</View>;
+    return <View className="mb-3 flex-row flex-wrap gap-0.5 self-start">{tabs}</View>;
   }
 
   return (
@@ -91,17 +91,17 @@ function FilterTab({ label, icon, selected, onPress, desktop }: FilterTabProps) 
       <Pressable
         onPress={onPress}
         className={cn(
-          'flex-row items-center rounded-card px-3 py-3',
+          'flex-row items-center rounded-card px-2 py-1.5',
           selected && 'bg-black/5 dark:bg-white/10',
         )}>
         <Ionicons
           name={icon}
-          size={20}
+          size={16}
           color={selected ? palette.brand : palette.textSecondary}
         />
         <Text
           className={cn(
-            'ml-3 text-sm',
+            'ml-2 text-xs',
             selected
               ? 'font-semibold text-text dark:text-text-dark'
               : 'text-text-secondary dark:text-text-dark-secondary',
@@ -116,7 +116,7 @@ function FilterTab({ label, icon, selected, onPress, desktop }: FilterTabProps) 
     <Pressable
       onPress={onPress}
       className={cn(
-        'rounded-full border px-4 py-2',
+        'rounded-full border px-3 py-1.5',
         selected
           ? 'border-brand bg-brand/10 dark:border-brand-dark'
           : 'border-border bg-surface-secondary dark:border-border-dark dark:bg-surface-dark-secondary',

@@ -5,9 +5,10 @@ import { useRouter } from 'expo-router';
 import { RecipeGrid } from '@/components/recipes/RecipeGrid';
 import { Button, EmptyState } from '@/components/ui';
 import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
 import { Text, Heading } from '@/components/ui/Text';
-import { OptionSelect } from '@/components/ui/Form';
 import { RECIPE_TIME_FILTERS, DIETARY_TAG_PRESETS } from '@/constants/recipes';
+import { pageHeaderMarginClass, pagePaddingClass } from '@/constants/theme';
 import { useIngredients } from '@/hooks/useIngredients';
 import { useRecipes } from '@/hooks/useRecipes';
 import { useResponsive } from '@/hooks/useResponsive';
@@ -32,15 +33,22 @@ export default function RecipesScreen() {
   const isDefaultFilters =
     !search.trim() && maxTime === null && dietaryTag === null && ingredientFilter === null;
 
+  const timeLabel =
+    RECIPE_TIME_FILTERS.find((filter) => filter.maxMinutes === maxTime)?.label ?? 'Any time';
+  const dietaryLabel = dietaryTag ?? 'All tags';
+  const ingredientLabel = ingredientFilter
+    ? ingredients.find((item) => item.id === ingredientFilter)?.name ?? 'Any ingredient'
+    : 'Any ingredient';
+
   return (
     <ScrollView
       className="flex-1 bg-surface dark:bg-surface-dark"
-      contentContainerClassName={`flex-grow ${isDesktop ? 'px-8 py-6' : 'px-5 py-5'}`}>
+      contentContainerClassName={`flex-grow ${pagePaddingClass(isDesktop)}`}>
       <View
-        className={`${isDesktop ? 'mb-4' : 'mb-6'} flex-row items-start justify-between gap-4`}>
+        className={`${pageHeaderMarginClass(isDesktop)} flex-row items-start justify-between gap-3`}>
         <View className="flex-1">
           <Heading level={isDesktop ? 1 : 2}>Recipes</Heading>
-          <Text variant="bodySecondary" className="mt-1">
+          <Text variant="caption" className="mt-0.5">
             Browse recipes with stock status and cost breakdowns.
           </Text>
         </View>
@@ -49,56 +57,93 @@ export default function RecipesScreen() {
         )}
       </View>
 
-      <Input
-        value={search}
-        onChangeText={setSearch}
-        placeholder="Search recipes"
-        className="mb-4"
-      />
+      {isDesktop ? (
+        <View className="mb-3 flex-row flex-wrap items-end gap-2">
+          <Input
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Search recipes"
+            className="mb-0 min-w-[180px] flex-1"
+          />
+          <Select
+            label="Time"
+            value={timeLabel}
+            options={RECIPE_TIME_FILTERS.map((filter) => filter.label)}
+            onChange={(label) => {
+              const match = RECIPE_TIME_FILTERS.find((filter) => filter.label === label);
+              setMaxTime(match?.maxMinutes ?? null);
+            }}
+            className="w-[130px]"
+          />
+          <Select
+            label="Dietary"
+            value={dietaryLabel}
+            options={['All tags', ...DIETARY_TAG_PRESETS]}
+            onChange={(value) => setDietaryTag(value === 'All tags' ? null : value)}
+            className="w-[130px]"
+          />
+          {ingredientNames.length > 0 && (
+            <Select
+              label="Ingredient"
+              value={ingredientLabel}
+              options={['Any ingredient', ...ingredientNames]}
+              onChange={(value) => {
+                if (value === 'Any ingredient') {
+                  setIngredientFilter(null);
+                  return;
+                }
 
-      <OptionSelect
-        label="Time to cook"
-        value={RECIPE_TIME_FILTERS.find((filter) => filter.maxMinutes === maxTime)?.label ?? 'Any time'}
-        options={RECIPE_TIME_FILTERS.map((filter) => filter.label)}
-        onChange={(label) => {
-          const match = RECIPE_TIME_FILTERS.find((filter) => filter.label === label);
-          setMaxTime(match?.maxMinutes ?? null);
-        }}
-        className="mb-4"
-      />
+                const match = ingredients.find((item) => item.name === value);
+                setIngredientFilter(match?.id ?? null);
+              }}
+              className="min-w-[160px] flex-1"
+            />
+          )}
+        </View>
+      ) : (
+        <View className="mb-3 gap-2">
+          <Input
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Search recipes"
+            className="mb-0"
+          />
+          <Select
+            label="Time to cook"
+            value={timeLabel}
+            options={RECIPE_TIME_FILTERS.map((filter) => filter.label)}
+            onChange={(label) => {
+              const match = RECIPE_TIME_FILTERS.find((filter) => filter.label === label);
+              setMaxTime(match?.maxMinutes ?? null);
+            }}
+          />
+          <Select
+            label="Dietary tag"
+            value={dietaryLabel}
+            options={['All tags', ...DIETARY_TAG_PRESETS]}
+            onChange={(value) => setDietaryTag(value === 'All tags' ? null : value)}
+          />
+          {ingredientNames.length > 0 && (
+            <Select
+              label="Cook with ingredient"
+              value={ingredientLabel}
+              options={['Any ingredient', ...ingredientNames]}
+              onChange={(value) => {
+                if (value === 'Any ingredient') {
+                  setIngredientFilter(null);
+                  return;
+                }
 
-      <OptionSelect
-        label="Dietary tag"
-        value={dietaryTag ?? 'All tags'}
-        options={['All tags', ...DIETARY_TAG_PRESETS]}
-        onChange={(value) => setDietaryTag(value === 'All tags' ? null : value)}
-        className="mb-4"
-      />
-
-      {ingredientNames.length > 0 && (
-        <OptionSelect
-          label="Cook with ingredient"
-          value={
-            ingredientFilter
-              ? ingredients.find((item) => item.id === ingredientFilter)?.name ?? 'Any ingredient'
-              : 'Any ingredient'
-          }
-          options={['Any ingredient', ...ingredientNames]}
-          onChange={(value) => {
-            if (value === 'Any ingredient') {
-              setIngredientFilter(null);
-              return;
-            }
-
-            const match = ingredients.find((item) => item.name === value);
-            setIngredientFilter(match?.id ?? null);
-          }}
-          className="mb-4"
-        />
+                const match = ingredients.find((item) => item.name === value);
+                setIngredientFilter(match?.id ?? null);
+              }}
+            />
+          )}
+        </View>
       )}
 
       {isLoading ? (
-        <ActivityIndicator className="mt-8" />
+        <ActivityIndicator className="mt-4" />
       ) : recipes.length === 0 ? (
         <EmptyState
           title="No recipes yet"

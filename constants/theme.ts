@@ -1,4 +1,13 @@
 export const DESKTOP_BREAKPOINT = 1280;
+export const SIDEBAR_WIDTH = 180;
+
+export function pagePaddingClass(isDesktop: boolean) {
+  return isDesktop ? 'px-5 py-4' : 'px-4 py-4';
+}
+
+export function pageHeaderMarginClass(isDesktop: boolean) {
+  return isDesktop ? 'mb-3' : 'mb-4';
+}
 
 export const colors = {
   light: {

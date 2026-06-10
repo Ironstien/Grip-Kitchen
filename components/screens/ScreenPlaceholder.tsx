@@ -2,6 +2,7 @@ import { ScrollView, View } from 'react-native';
 
 import { EmptyState } from '@/components/ui';
 import { Heading, Text } from '@/components/ui/Text';
+import { pageHeaderMarginClass, pagePaddingClass } from '@/constants/theme';
 import { useResponsive } from '@/hooks/useResponsive';
 
 type ScreenPlaceholderProps = {
@@ -16,10 +17,10 @@ export function ScreenPlaceholder({ title, description, actionLabel }: ScreenPla
   return (
     <ScrollView
       className="flex-1 bg-surface dark:bg-surface-dark"
-      contentContainerClassName={`flex-grow ${isDesktop ? 'px-8 py-6' : 'px-5 py-5'}`}>
-      <View className={isDesktop ? 'mb-4' : 'mb-6'}>
+      contentContainerClassName={`flex-grow ${pagePaddingClass(isDesktop)}`}>
+      <View className={pageHeaderMarginClass(isDesktop)}>
         <Heading level={isDesktop ? 1 : 2}>{title}</Heading>
-        <Text variant="bodySecondary" className="mt-1">
+        <Text variant="caption" className="mt-0.5">
           {description}
         </Text>
       </View>

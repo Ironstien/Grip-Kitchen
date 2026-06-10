@@ -8,6 +8,7 @@ import { PantryMobileList } from '@/components/pantry/PantryMobileList';
 import { EmptyState } from '@/components/ui';
 import { Input } from '@/components/ui/Input';
 import { Heading, Text } from '@/components/ui/Text';
+import { pageHeaderMarginClass, pagePaddingClass } from '@/constants/theme';
 import { useInventory } from '@/hooks/useInventory';
 import { useStorageLocations } from '@/hooks/useStorageLocations';
 import { useResponsive } from '@/hooks/useResponsive';
@@ -35,10 +36,10 @@ export default function PantryScreen() {
   return (
     <ScrollView
       className="flex-1 bg-surface dark:bg-surface-dark"
-      contentContainerClassName={`flex-grow ${isDesktop ? 'px-8 py-6' : 'px-5 py-5'}`}>
-      <View className={isDesktop ? 'mb-4' : 'mb-6'}>
+      contentContainerClassName={`flex-grow ${pagePaddingClass(isDesktop)}`}>
+      <View className={pageHeaderMarginClass(isDesktop)}>
         <Heading level={isDesktop ? 1 : 2}>Pantry</Heading>
-        <Text variant="bodySecondary" className="mt-1">
+        <Text variant="caption" className="mt-0.5">
           Add or remove stock. Edit ingredient details in Settings → Master Ingredient List.
         </Text>
       </View>
@@ -47,7 +48,7 @@ export default function PantryScreen() {
         value={search}
         onChangeText={setSearch}
         placeholder="Search pantry"
-        className="mb-4"
+        className="mb-3"
       />
 
       <LocationFilterTabs
@@ -66,7 +67,7 @@ export default function PantryScreen() {
           onAction={() => router.push('/(main)/inventory/new')}
         />
       ) : isDesktop ? (
-        <View className="-mr-8 w-full">
+        <View className="-mr-5 w-full">
           <PantryDesktopSpreadsheet
             items={filteredItems}
             locations={locations}

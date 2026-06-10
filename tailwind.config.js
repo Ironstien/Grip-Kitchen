@@ -8,9 +8,18 @@ module.exports = {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
       },
+      fontSize: {
+        xs: ['11px', { lineHeight: '14px' }],
+        sm: ['13px', { lineHeight: '18px' }],
+        base: ['13px', { lineHeight: '18px' }],
+        lg: ['15px', { lineHeight: '20px' }],
+        xl: ['17px', { lineHeight: '22px' }],
+        '2xl': ['20px', { lineHeight: '24px' }],
+        '3xl': ['22px', { lineHeight: '28px' }],
+      },
       borderRadius: {
-        card: '10px',
-        button: '10px',
+        card: '4px',
+        button: '4px',
       },
       colors: {
         brand: {

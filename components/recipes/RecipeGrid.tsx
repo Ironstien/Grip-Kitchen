@@ -13,28 +13,32 @@ type RecipeGridProps = {
 
 export function RecipeGrid({ recipes, dense = false }: RecipeGridProps) {
   const router = useRouter();
+  const imageHeight = dense ? 72 : 100;
+  const cardWidth = dense ? '18%' : '48%';
 
   return (
-    <View className={dense ? 'flex-row flex-wrap gap-3' : 'flex-row flex-wrap gap-3'}>
+    <View className={dense ? 'flex-row flex-wrap gap-2' : 'flex-row flex-wrap gap-2'}>
       {recipes.map((recipe) => (
         <Pressable
           key={recipe.id}
-          style={{ width: dense ? '23%' : '48%' }}
+          style={{ width: cardWidth }}
           onPress={() => router.push(`/(main)/recipes/${recipe.id}` as Href)}>
           <Card dense className="overflow-hidden p-0">
             {recipe.hero_image_url ? (
               <Image
                 source={{ uri: recipe.hero_image_url }}
-                style={{ width: '100%', height: dense ? 120 : 140 }}
+                style={{ width: '100%', height: imageHeight }}
                 contentFit="cover"
               />
             ) : (
-              <View className="h-[140px] items-center justify-center bg-surface-secondary dark:bg-surface-dark-secondary">
+              <View
+                className="items-center justify-center bg-surface-secondary dark:bg-surface-dark-secondary"
+                style={{ height: imageHeight }}>
                 <Text variant="caption">No photo</Text>
               </View>
             )}
-            <View className="gap-1 p-3">
-              <Text className={dense ? 'font-semibold' : 'text-base font-semibold'} numberOfLines={2}>
+            <View className="gap-0.5 p-2">
+              <Text className="text-xs font-semibold" numberOfLines={2}>
                 {recipe.title}
               </Text>
               {recipe.time_to_cook != null && (

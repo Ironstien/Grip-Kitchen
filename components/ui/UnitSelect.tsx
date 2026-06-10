@@ -36,7 +36,7 @@ export function UnitSelect({
   className,
   units: unitsProp,
   placeholder = 'Select unit',
-  compact = false,
+  compact = true,
 }: UnitSelectProps) {
   const { data: fetchedUnits = [], isLoading } = useUserUnits();
   const [open, setOpen] = useState(false);
@@ -70,7 +70,7 @@ export function UnitSelect({
         disabled={units.length === 0}
         className={cn(
           'flex-row items-center justify-between border border-border bg-surface dark:border-border-dark dark:bg-surface-dark-secondary',
-          compact ? 'min-h-[32px] rounded px-2 py-1' : 'min-h-[48px] rounded-button px-4',
+          'min-h-[32px] rounded px-2 py-1',
           units.length === 0 && 'opacity-60',
         )}>
         <Text

@@ -4,6 +4,7 @@ import { Href, Stack, useRouter } from 'expo-router';
 import { RecipeForm } from '@/components/recipes/RecipeForm';
 import { IconButton } from '@/components/ui/IconButton';
 import { Heading, Text } from '@/components/ui/Text';
+import { pagePaddingClass } from '@/constants/theme';
 import { useResponsive } from '@/hooks/useResponsive';
 
 export default function NewRecipeScreen() {
@@ -11,13 +12,13 @@ export default function NewRecipeScreen() {
   const { isDesktop } = useResponsive();
 
   return (
-    <View className={`flex-1 bg-surface dark:bg-surface-dark ${isDesktop ? 'px-8 py-6' : 'px-5 py-5'}`}>
+    <View className={`flex-1 bg-surface dark:bg-surface-dark ${pagePaddingClass(isDesktop)}`}>
       <Stack.Screen options={{ headerShown: false }} />
-      <View className="mb-4 flex-row items-center gap-3">
+      <View className="mb-3 flex-row items-center gap-2">
         <IconButton name="arrow-back" accessibilityLabel="Go back" onPress={() => router.back()} />
         <View className="flex-1">
           <Heading level={isDesktop ? 1 : 2}>New recipe</Heading>
-          <Text variant="bodySecondary">Link pantry ingredients and preview costs live.</Text>
+          <Text variant="caption">Link pantry ingredients and preview costs live.</Text>
         </View>
       </View>
       <RecipeForm

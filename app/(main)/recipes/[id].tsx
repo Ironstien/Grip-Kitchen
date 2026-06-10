@@ -6,6 +6,7 @@ import { RecipeIngredientList } from '@/components/recipes/RecipeIngredientList'
 import { Button } from '@/components/ui/Button';
 import { IconButton } from '@/components/ui/IconButton';
 import { Heading, Text } from '@/components/ui/Text';
+import { pagePaddingClass } from '@/constants/theme';
 import { useRecipe, useRecipeScaling } from '@/hooks/useRecipes';
 import { useResponsive } from '@/hooks/useResponsive';
 
@@ -22,15 +23,15 @@ export default function RecipeDetailScreen() {
   return (
     <ScrollView
       className="flex-1 bg-surface dark:bg-surface-dark"
-      contentContainerClassName={`${isDesktop ? 'px-8 py-6' : 'px-5 py-5'} pb-12`}>
+      contentContainerClassName={`${pagePaddingClass(isDesktop)} pb-8`}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <View className="mb-4 flex-row items-center gap-3">
+      <View className="mb-3 flex-row items-center gap-2">
         <IconButton name="arrow-back" accessibilityLabel="Go back" onPress={() => router.back()} />
         <View className="flex-1">
           <Heading level={isDesktop ? 1 : 2}>{recipe?.title ?? 'Recipe'}</Heading>
           {recipe?.time_to_cook != null && (
-            <Text variant="bodySecondary">{recipe.time_to_cook} min</Text>
+            <Text variant="caption">{recipe.time_to_cook} min</Text>
           )}
         </View>
         {recipe && (

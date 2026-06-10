@@ -4,6 +4,7 @@ import { Stack, useRouter } from 'expo-router';
 import { PantryStockForm } from '@/components/pantry/PantryStockForm';
 import { IconButton } from '@/components/ui/IconButton';
 import { Heading, Text } from '@/components/ui/Text';
+import { pagePaddingClass } from '@/constants/theme';
 import { useResponsive } from '@/hooks/useResponsive';
 
 export default function NewInventoryItemScreen() {
@@ -11,13 +12,13 @@ export default function NewInventoryItemScreen() {
   const { isDesktop } = useResponsive();
 
   return (
-    <View className={`flex-1 bg-surface dark:bg-surface-dark ${isDesktop ? 'px-8 py-6' : 'px-5 py-5'}`}>
+    <View className={`flex-1 bg-surface dark:bg-surface-dark ${pagePaddingClass(isDesktop)}`}>
       <Stack.Screen options={{ headerShown: false }} />
-      <View className="mb-4 flex-row items-center gap-3">
+      <View className="mb-3 flex-row items-center gap-2">
         <IconButton name="arrow-back" accessibilityLabel="Go back" onPress={() => router.back()} />
         <View className="flex-1">
           <Heading level={isDesktop ? 1 : 2}>Add to pantry</Heading>
-          <Text variant="bodySecondary">
+          <Text variant="caption">
             Choose an ingredient from your master list and set stock details.
           </Text>
         </View>
