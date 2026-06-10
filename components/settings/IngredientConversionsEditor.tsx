@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, View } from 'react-native';
 
 import { UnitSelect } from '@/components/ui/UnitSelect';
@@ -55,43 +55,68 @@ export function IngredientConversionsEditor({
   const [draftRule, setDraftRule] = useState<ConversionDraft>(() =>
     createEmptyDraft(ingredient.stock_unit),
   );
+  const [draftError, setDraftError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  const serverConversionKey = useMemo(
+    () => JSON.stringify(ingredient.ingredient_conversions),
+    [ingredient.ingredient_conversions],
+  );
 
   useEffect(() => {
     setSavedRules(ingredient.ingredient_conversions.map(toDraft));
     setDraftRule(createEmptyDraft(ingredient.stock_unit));
-  }, [ingredient]);
+    setDraftError(null);
+  }, [ingredient.id, ingredient.stock_unit, serverConversionKey]);
 
   const updateDraftRule = (patch: Partial<ConversionDraft>) => {
+    setDraftError(null);
     setDraftRule((current) => ({ ...current, ...patch }));
   };
 
   const resetDraftRule = () => {
     setDraftRule(createEmptyDraft(ingredient.stock_unit));
+    setDraftError(null);
   };
 
   const parseRule = (
     draft: ConversionDraft,
+    showAlert: boolean,
   ): { from_unit: string; to_unit: string; factor: number } | null => {
-    if (!isMasterUnitSymbol(draft.from_unit, masterUnits)) {
-      Alert.alert('Invalid conversion', 'Choose a valid “from” unit.');
+    const fail = (message: string) => {
+      if (showAlert) {
+        Alert.alert('Invalid conversion', message);
+      }
       return null;
+    };
+
+    if (!draft.from_unit.trim()) {
+      return fail('Choose a “from” unit.');
+    }
+
+    if (!draft.to_unit.trim()) {
+      return fail('Choose a “to” unit.');
+    }
+
+    if (!isMasterUnitSymbol(draft.from_unit, masterUnits)) {
+      return fail('Choose a valid “from” unit from the Master Units List.');
     }
 
     if (!isMasterUnitSymbol(draft.to_unit, masterUnits)) {
-      Alert.alert('Invalid conversion', 'Choose a valid “to” unit.');
-      return null;
+      return fail('Choose a valid “to” unit from the Master Units List.');
     }
 
     if (draft.from_unit === draft.to_unit) {
-      Alert.alert('Invalid conversion', '“From” and “to” units must be different.');
-      return null;
+      return fail('“From” and “to” units must be different.');
+    }
+
+    if (!draft.factor.trim()) {
+      return fail('Enter the conversion factor (e.g. 12).');
     }
 
     const factor = Number(draft.factor);
     if (Number.isNaN(factor) || factor <= 0) {
-      Alert.alert('Invalid conversion', 'Enter a positive factor.');
-      return null;
+      return fail('Enter a positive factor.');
     }
 
     return {
@@ -102,8 +127,20 @@ export function IngredientConversionsEditor({
   };
 
   const commitDraftRule = () => {
-    const parsed = parseRule(draftRule);
+    const parsed = parseRule(draftRule, false);
     if (!parsed) {
+      const message =
+        !draftRule.to_unit.trim()
+          ? 'Choose a “to” unit.'
+          : !draftRule.factor.trim()
+            ? 'Enter the conversion factor (e.g. 12).'
+            : !isMasterUnitSymbol(draftRule.from_unit, masterUnits) ||
+                !isMasterUnitSymbol(draftRule.to_unit, masterUnits)
+              ? 'Choose units from the Master Units List.'
+              : draftRule.from_unit === draftRule.to_unit
+                ? '“From” and “to” units must be different.'
+                : 'Enter a valid conversion rule.';
+      setDraftError(message);
       return;
     }
 
@@ -111,7 +148,7 @@ export function IngredientConversionsEditor({
       (rule) => rule.from_unit === parsed.from_unit && rule.to_unit === parsed.to_unit,
     );
     if (duplicate) {
-      Alert.alert('Duplicate rule', 'That conversion rule already exists.');
+      setDraftError('That conversion rule already exists.');
       return;
     }
 
@@ -181,6 +218,9 @@ export function IngredientConversionsEditor({
             className="min-w-[88px]"
           />
         </View>
+        {draftError ? (
+          <Text className="text-sm text-status-danger">{draftError}</Text>
+        ) : null}
         <Button label="Add rule" onPress={commitDraftRule} />
       </View>
 

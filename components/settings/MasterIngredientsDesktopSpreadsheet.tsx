@@ -630,7 +630,7 @@ export function MasterIngredientsDesktopSpreadsheet({
                 <Text variant="bodySecondary" className="mb-4">
                   {conversionsIngredient.name}
                 </Text>
-                <ScrollView className="max-h-[420px]">
+                <ScrollView className="max-h-[420px]" keyboardShouldPersistTaps="handled" nestedScrollEnabled>
                   <IngredientConversionsEditor
                     ingredient={conversionsIngredient}
                     onClose={() => setConversionsIngredient(null)}
