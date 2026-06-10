@@ -4,6 +4,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, View } from 'react-native';
 
+import {
+  RECIPE_DESKTOP_HERO_HEIGHT,
+  RecipeDesktopLayout,
+} from '@/components/recipes/RecipeDesktopLayout';
 import { RecipeIngredientList } from '@/components/recipes/RecipeIngredientList';
 import { AutocompleteInput } from '@/components/ui/AutocompleteInput';
 import { FormField } from '@/components/ui/Form';
@@ -13,6 +17,7 @@ import { Select } from '@/components/ui/Select';
 import { Text } from '@/components/ui/Text';
 import { DIETARY_TAG_PRESETS } from '@/constants/recipes';
 import { useIngredients } from '@/hooks/useIngredients';
+import { useResponsive } from '@/hooks/useResponsive';
 import { useRecipeMutations, useRecipeScaling } from '@/hooks/useRecipes';
 import { getIngredientSelectableUnits } from '@/lib/ingredientConversions';
 import { fieldPanelClassName, fieldSurfaceClassName } from '@/lib/fieldStyles';
@@ -41,6 +46,7 @@ type RecipeFormProps = {
 };
 
 export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
+  const { isDesktop } = useResponsive();
   const { data: ingredientsCatalog = [] } = useIngredients();
   const { create, update, uploadHeroImage } = useRecipeMutations();
 
@@ -352,8 +358,62 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
     }
   };
 
-  return (
-    <ScrollView contentContainerClassName="gap-5 pb-12" keyboardShouldPersistTaps="handled">
+  const heroImagePreview =
+    heroImageUrl ? (
+      <Image
+        source={{ uri: heroImageUrl }}
+        style={{ width: '100%', height: RECIPE_DESKTOP_HERO_HEIGHT }}
+        contentFit="cover"
+      />
+    ) : (
+      <View
+        className={cn(
+          'h-full items-center justify-center border border-dashed border-field-border',
+          fieldPanelClassName,
+        )}>
+        <Text variant="bodySecondary">Photo required for recipe cards</Text>
+      </View>
+    );
+
+  const heroPhotoControls = (
+    <>
+      <Button
+        label="Upload photo"
+        variant="secondary"
+        onPress={() => void pickImage()}
+        className="self-start"
+      />
+      <Input
+        value={heroImageUrl.startsWith('http') ? heroImageUrl : ''}
+        onChangeText={setHeroImageUrl}
+        placeholder="Paste image URL"
+      />
+    </>
+  );
+
+  const heroPhotoField = (
+    <FormField label="Hero photo">
+      {heroImageUrl ? (
+        <Image
+          source={{ uri: heroImageUrl }}
+          style={{ width: '100%', height: 220, borderRadius: 10 }}
+          contentFit="cover"
+        />
+      ) : (
+        <View
+          className={cn(
+            'h-[220px] items-center justify-center border border-dashed border-field-border',
+            fieldPanelClassName,
+          )}>
+          <Text variant="bodySecondary">Photo required for recipe cards</Text>
+        </View>
+      )}
+      <View className="mt-3 gap-3">{heroPhotoControls}</View>
+    </FormField>
+  );
+
+  const metadataFields = (
+    <View className="gap-4">
       <FormField label="Title">
         <Input value={title} onChangeText={setTitle} placeholder="Recipe title" />
       </FormField>
@@ -366,23 +426,6 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
           <Input value={timeToCook} onChangeText={setTimeToCook} keyboardType="number-pad" />
         </FormField>
       </View>
-
-      <FormField label="Hero photo">
-        {heroImageUrl ? (
-          <Image source={{ uri: heroImageUrl }} style={{ width: '100%', height: 220, borderRadius: 10 }} contentFit="cover" />
-        ) : (
-          <View className={cn('h-[220px] items-center justify-center border border-dashed border-field-border', fieldPanelClassName)}>
-            <Text variant="bodySecondary">Photo required for recipe cards</Text>
-          </View>
-        )}
-        <Button label="Upload photo" variant="secondary" onPress={() => void pickImage()} className="mt-3 self-start" />
-        <Input
-          value={heroImageUrl.startsWith('http') ? heroImageUrl : ''}
-          onChangeText={setHeroImageUrl}
-          placeholder="Paste image URL"
-          className="mt-3"
-        />
-      </FormField>
 
       <View className={fieldPanelClassName}>
         <Text variant="label" className="mb-2">
@@ -416,93 +459,92 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
         </View>
       </View>
 
-      <View className="gap-3">
-        <Text variant="label">Ingredients</Text>
-
-        <View className={cn('gap-2', fieldPanelClassName)}>
-          <AutocompleteInput
-            label="Ingredient"
-            value={draftIngredient.ingredient_id}
-            options={ingredientOptions}
-            placeholder="Type to search ingredients"
-            onChange={(ingredientId) => {
-              const catalogItem = getCatalogItem(ingredientId);
-              const allowedUnits = catalogItem ? getIngredientSelectableUnits(catalogItem) : [];
-              const stockUnit = catalogItem?.stock_unit ?? '';
-              const defaultUnit =
-                allowedUnits.find((unit) => normalizeUnitSymbol(unit) === normalizeUnitSymbol(stockUnit)) ??
-                allowedUnits[0] ??
-                'each';
-
-              updateDraftIngredient({
-                ingredient_id: ingredientId,
-                required_unit: defaultUnit,
-              });
-            }}
-          />
-          <View className="flex-row gap-3">
-            <FormField label="Quantity" className="flex-1">
-              <Input
-                value={draftIngredient.required_quantity}
-                onChangeText={(value) => updateDraftIngredient({ required_quantity: value })}
-                keyboardType="decimal-pad"
-              />
-            </FormField>
-            <View className="flex-1">
-              <Select
-                label="Unit"
-                value={draftIngredient.required_unit}
-                options={draftUnitOptions}
-                placeholder={draftIngredient.ingredient_id ? 'Select unit' : 'Select ingredient first'}
-                disabled={!draftIngredient.ingredient_id || draftUnitOptions.length === 0}
-                onChange={(unit) => updateDraftIngredient({ required_unit: unit })}
-              />
-            </View>
-          </View>
-          <Button label="Add ingredient" onPress={commitDraftIngredient} />
+      {isDesktop ? (
+        <View className="gap-3">
+          <Text variant="label">Hero photo</Text>
+          {heroPhotoControls}
         </View>
+      ) : null}
+    </View>
+  );
 
-        {ingredients.length > 0 ? (
-          <View className="gap-1.5">
-            {ingredients.map((entry, index) => {
-              const catalogItem = ingredientsCatalog.find((item) => item.id === entry.ingredient_id);
-              const name = catalogItem ? getIngredientDisplayName(catalogItem) : 'Unknown ingredient';
+  const ingredientsFields = (
+    <View className="gap-3">
+      <Text variant="label">Ingredients</Text>
 
-              return (
-                <View
-                  key={`${entry.ingredient_id}-${index}`}
-                  className={cn('flex-row items-center gap-2 py-2', fieldPanelClassName)}>
-                  <View className="flex-1">
-                    <Text className="text-sm font-medium">{name}</Text>
-                    <Text variant="caption">
-                      {entry.required_quantity} {entry.required_unit}
-                    </Text>
-                  </View>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={`Remove ${name}`}
-                    onPress={() => removeIngredient(index)}
-                    className="p-1">
-                    <Ionicons name="close-circle" size={22} color="#DC2626" />
-                  </Pressable>
-                </View>
-              );
-            })}
+      <View className={cn('gap-2', fieldPanelClassName)}>
+        <AutocompleteInput
+          label="Ingredient"
+          value={draftIngredient.ingredient_id}
+          options={ingredientOptions}
+          placeholder="Type to search ingredients"
+          onChange={(ingredientId) => {
+            const catalogItem = getCatalogItem(ingredientId);
+            const allowedUnits = catalogItem ? getIngredientSelectableUnits(catalogItem) : [];
+            const stockUnit = catalogItem?.stock_unit ?? '';
+            const defaultUnit =
+              allowedUnits.find((unit) => normalizeUnitSymbol(unit) === normalizeUnitSymbol(stockUnit)) ??
+              allowedUnits[0] ??
+              'each';
+
+            updateDraftIngredient({
+              ingredient_id: ingredientId,
+              required_unit: defaultUnit,
+            });
+          }}
+        />
+        <View className="flex-row gap-3">
+          <FormField label="Quantity" className="flex-1">
+            <Input
+              value={draftIngredient.required_quantity}
+              onChangeText={(value) => updateDraftIngredient({ required_quantity: value })}
+              keyboardType="decimal-pad"
+            />
+          </FormField>
+          <View className="flex-1">
+            <Select
+              label="Unit"
+              value={draftIngredient.required_unit}
+              options={draftUnitOptions}
+              placeholder={draftIngredient.ingredient_id ? 'Select unit' : 'Select ingredient first'}
+              disabled={!draftIngredient.ingredient_id || draftUnitOptions.length === 0}
+              onChange={(unit) => updateDraftIngredient({ required_unit: unit })}
+            />
           </View>
-        ) : (
-          <Text variant="caption">No ingredients added yet.</Text>
-        )}
+        </View>
+        <Button label="Add ingredient" onPress={commitDraftIngredient} />
       </View>
 
-      <FormField label="Instructions">
-        <Input
-          value={instructions}
-          onChangeText={setInstructions}
-          placeholder="Step-by-step instructions"
-          multiline
-          className="min-h-[160px] align-top"
-        />
-      </FormField>
+      {ingredients.length > 0 ? (
+        <View className="gap-1.5">
+          {ingredients.map((entry, index) => {
+            const catalogItem = ingredientsCatalog.find((item) => item.id === entry.ingredient_id);
+            const name = catalogItem ? getIngredientDisplayName(catalogItem) : 'Unknown ingredient';
+
+            return (
+              <View
+                key={`${entry.ingredient_id}-${index}`}
+                className={cn('flex-row items-center gap-2 py-2', fieldPanelClassName)}>
+                <View className="flex-1">
+                  <Text className="text-sm font-medium">{name}</Text>
+                  <Text variant="caption">
+                    {entry.required_quantity} {entry.required_unit}
+                  </Text>
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Remove ${name}`}
+                  onPress={() => removeIngredient(index)}
+                  className="p-1">
+                  <Ionicons name="close-circle" size={22} color="#DC2626" />
+                </Pressable>
+              </View>
+            );
+          })}
+        </View>
+      ) : (
+        <Text variant="caption">No ingredients added yet.</Text>
+      )}
 
       {previewRecipe.recipe_ingredients.length > 0 && (
         <View className="gap-3">
@@ -519,16 +561,51 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
           <RecipeIngredientList recipe={previewRecipe} targetServings={targetServings} />
         </View>
       )}
+    </View>
+  );
 
-      <View className="flex-row gap-3">
-        <Button label="Cancel" variant="ghost" onPress={onCancel} className="flex-1" />
-        <Button
-          label={isSaving ? 'Saving...' : recipe ? 'Save recipe' : 'Create recipe'}
-          onPress={() => void handleSave()}
-          disabled={isSaving}
-          className="flex-1"
+  const instructionsField = (
+    <FormField label="Instructions">
+      <Input
+        value={instructions}
+        onChangeText={setInstructions}
+        placeholder="Step-by-step instructions"
+        multiline
+        className={isDesktop ? 'min-h-[240px] align-top' : 'min-h-[160px] align-top'}
+      />
+    </FormField>
+  );
+
+  const actionButtons = (
+    <View className="flex-row gap-3">
+      <Button label="Cancel" variant="ghost" onPress={onCancel} className="flex-1" />
+      <Button
+        label={isSaving ? 'Saving...' : recipe ? 'Save recipe' : 'Create recipe'}
+        onPress={() => void handleSave()}
+        disabled={isSaving}
+        className="flex-1"
+      />
+    </View>
+  );
+
+  return (
+    <ScrollView contentContainerClassName="gap-5 pb-12" keyboardShouldPersistTaps="handled">
+      {isDesktop ? (
+        <RecipeDesktopLayout
+          heroImage={heroImagePreview}
+          ingredients={ingredientsFields}
+          metadata={metadataFields}
+          instructions={instructionsField}
         />
-      </View>
+      ) : (
+        <>
+          {metadataFields}
+          {heroPhotoField}
+          {ingredientsFields}
+          {instructionsField}
+        </>
+      )}
+      {actionButtons}
     </ScrollView>
   );
 }
