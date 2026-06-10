@@ -43,37 +43,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let isMounted = true;
 
     const initialize = async () => {
-      const {
-        data: { session: initialSession },
-      } = await supabase.auth.getSession();
+      try {
+        const sessionResult = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000)),
+        ]);
 
-      if (!isMounted) {
-        return;
+        if (!isMounted) {
+          return;
+        }
+
+        const initialSession =
+          sessionResult && 'data' in sessionResult ? sessionResult.data.session : null;
+
+        setSession(initialSession);
+        setIsLoading(false);
+
+        if (initialSession) {
+          void loadProfile();
+        }
+      } catch (error) {
+        console.error('Auth initialization failed', error);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
-
-      setSession(initialSession);
-
-      if (initialSession) {
-        await loadProfile();
-      }
-
-      setIsLoading(false);
     };
 
     void initialize();
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
+      setIsLoading(false);
 
       if (nextSession) {
-        await loadProfile();
+        // Defer profile loading — awaiting Supabase calls here can deadlock session init.
+        setTimeout(() => {
+          void loadProfile();
+        }, 0);
       } else {
         setProfile(null);
       }
-
-      setIsLoading(false);
     });
 
     const unsubscribeDeepLinks =

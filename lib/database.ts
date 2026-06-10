@@ -57,19 +57,24 @@ export async function ensureUserProfile(): Promise<UserProfile | null> {
     return null;
   }
 
+  const existing = await getCurrentUserProfile();
+  if (existing) {
+    return existing;
+  }
+
   const { data, error } = await supabase
     .from('users')
-    .upsert(
-      {
-        id: user.id,
-        email: user.email ?? '',
-      },
-      { onConflict: 'id' },
-    )
+    .insert({
+      id: user.id,
+      email: user.email ?? '',
+    })
     .select('*')
     .single();
 
   if (error) {
+    if (error.code === '23505') {
+      return getCurrentUserProfile();
+    }
     throw error;
   }
 
