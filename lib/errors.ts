@@ -21,8 +21,13 @@ export function formatErrorMessage(error: unknown, fallback = 'Something went wr
       return 'Your account profile is not set up yet. Try signing out and back in.';
     }
 
-    if (pgError.code === '42P01' || pgError.message?.includes('does not exist')) {
-      return 'Database is missing the ingredients table. Run migration 005_ingredients_master_list.sql in Supabase.';
+    if (
+      pgError.code === '42P01' ||
+      pgError.code === 'PGRST205' ||
+      pgError.message?.includes('does not exist') ||
+      pgError.message?.includes('schema cache')
+    ) {
+      return 'Database is missing the ingredients table. In Supabase → SQL Editor, run supabase/migrations/005_ingredients_master_list.sql';
     }
 
     if (typeof pgError.message === 'string' && pgError.message.length > 0) {

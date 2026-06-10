@@ -35,6 +35,22 @@ This creates all Grip Kitchen tables, enables Row Level Security, and adds a tri
 
 Recipe hero uploads from the app write to this bucket under `{user_id}/{recipe_id}/...`.
 
+### Master Units List and Master ingredient list
+
+Run these in order in **SQL Editor**:
+
+1. `supabase/migrations/003_price_unit_of_measure.sql` — price unit column on inventory
+2. `supabase/migrations/004_user_units.sql` — custom units (skip if `user_units already exists`)
+3. `supabase/migrations/005_ingredients_master_list.sql` — master ingredient catalog
+
+**If 005 fails** (e.g. `price_unit_of_measure does not exist`, or a partial run), run:
+
+`supabase/migrations/006_fix_ingredients_master_list.sql`
+
+That script is safe to re-run and finishes any incomplete steps.
+
+Without the ingredients table, Settings → Master list shows *"Could not find the table public.ingredients"*.
+
 ## 4. Enable Google OAuth
 
 ### Supabase

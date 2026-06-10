@@ -1,4 +1,7 @@
 -- Master ingredient catalog (metadata) separate from pantry stock rows.
+-- Requires 003_price_unit_of_measure.sql on inventory first.
+-- If this fails partway, run 006_fix_ingredients_master_list.sql instead.
+
 CREATE TABLE public.ingredients (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES public.users (id) ON DELETE CASCADE,
@@ -30,7 +33,7 @@ SELECT DISTINCT ON (user_id, lower(trim(name)))
   category,
   unit_of_measure,
   price_per_unit,
-  price_unit_of_measure
+  COALESCE(price_unit_of_measure, unit_of_measure, 'each')
 FROM public.inventory
 ORDER BY user_id, lower(trim(name)), id;
 
