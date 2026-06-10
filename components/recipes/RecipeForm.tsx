@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, View } from 'react-native';
 
 import { RecipeIngredientList } from '@/components/recipes/RecipeIngredientList';
+import { AutocompleteInput } from '@/components/ui/AutocompleteInput';
 import { FormField, OptionSelect } from '@/components/ui/Form';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -47,9 +48,9 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
       required_unit: ingredient.required_unit,
     })) ?? [
       {
-        ingredient_id: ingredientsCatalog[0]?.id ?? '',
+        ingredient_id: '',
         required_quantity: '1',
-        required_unit: ingredientsCatalog[0]?.stock_unit ?? 'each',
+        required_unit: 'each',
       },
     ],
   );
@@ -60,6 +61,7 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
       ingredientsCatalog.map((item) => ({
         id: item.id,
         label: getIngredientDisplayName(item),
+        keywords: `${item.name} ${item.display_name}`.toLowerCase(),
       })),
     [ingredientsCatalog],
   );
@@ -139,13 +141,12 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
   };
 
   const addIngredientRow = () => {
-    const first = ingredientsCatalog[0];
     setIngredients((current) => [
       ...current,
       {
-        ingredient_id: first?.id ?? '',
+        ingredient_id: '',
         required_quantity: '1',
-        required_unit: first?.stock_unit ?? 'each',
+        required_unit: 'each',
       },
     ]);
   };
@@ -209,6 +210,16 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
         required_quantity: Number(entry.required_quantity),
         required_unit: entry.required_unit,
       }));
+
+    if (ingredients.some((entry) => !entry.ingredient_id)) {
+      Alert.alert('Missing ingredient', 'Select an ingredient for each row before saving.');
+      return null;
+    }
+
+    if (parsedIngredients.length === 0) {
+      Alert.alert('Missing ingredients', 'Add at least one ingredient.');
+      return null;
+    }
 
     if (
       parsedIngredients.some(
@@ -341,19 +352,17 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
         <Text variant="label">Ingredients</Text>
         {ingredients.map((entry, index) => (
           <View key={`${entry.ingredient_id}-${index}`} className="gap-2 rounded-card border border-border p-3 dark:border-border-dark">
-            <OptionSelect
+            <AutocompleteInput
               label="Ingredient"
-              value={ingredientOptions.find((option) => option.id === entry.ingredient_id)?.label ?? ''}
-              options={ingredientOptions.map((option) => option.label)}
-              onChange={(label) => {
-                const match = ingredientOptions.find((option) => option.label === label);
-                if (match) {
-                  const catalogItem = ingredientsCatalog.find((item) => item.id === match.id);
-                  updateIngredient(index, {
-                    ingredient_id: match.id,
-                    required_unit: catalogItem?.stock_unit ?? 'each',
-                  });
-                }
+              value={entry.ingredient_id}
+              options={ingredientOptions}
+              placeholder="Type to search ingredients"
+              onChange={(ingredientId) => {
+                const catalogItem = ingredientsCatalog.find((item) => item.id === ingredientId);
+                updateIngredient(index, {
+                  ingredient_id: ingredientId,
+                  required_unit: catalogItem?.stock_unit ?? 'each',
+                });
               }}
             />
             <View className="flex-row gap-3">
