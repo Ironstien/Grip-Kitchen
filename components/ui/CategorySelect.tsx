@@ -29,7 +29,7 @@ export function CategorySelect({
   const [open, setOpen] = useState(false);
 
   const categories = useMemo(() => {
-    const source = categoriesProp ?? fetchedCategories;
+    const source = categoriesProp ?? fetchedCategories ?? [];
     if (value && !source.some((category) => category.name === value)) {
       return [
         {

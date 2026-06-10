@@ -8,22 +8,31 @@ import { useUserCategories, useUserCategoryMutations } from '@/hooks/useUserCate
 import { formatErrorMessage } from '@/lib/errors';
 
 export function CategoriesManager() {
-  const { data: categories = [], isLoading } = useUserCategories();
+  const { data: categories = [], isLoading, isError, error } = useUserCategories();
   const { create, rename, remove } = useUserCategoryMutations();
   const [newName, setNewName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
 
   const handleCreate = async () => {
-    if (!newName.trim()) {
+    const trimmed = newName.trim();
+    if (!trimmed || isCreating) {
       return;
     }
 
     try {
-      await create.mutateAsync(newName.trim());
+      setIsCreating(true);
+      setActionError(null);
+      await create.mutateAsync(trimmed);
       setNewName('');
-    } catch (error) {
-      Alert.alert('Could not add category', formatErrorMessage(error, 'Create failed.'));
+    } catch (err) {
+      const message = formatErrorMessage(err, 'Could not add category.');
+      setActionError(message);
+      Alert.alert('Could not add category', message);
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -33,11 +42,14 @@ export function CategoriesManager() {
     }
 
     try {
+      setActionError(null);
       await rename.mutateAsync({ id, name: editingName.trim() });
       setEditingId(null);
       setEditingName('');
-    } catch (error) {
-      Alert.alert('Could not rename category', formatErrorMessage(error, 'Rename failed.'));
+    } catch (err) {
+      const message = formatErrorMessage(err, 'Rename failed.');
+      setActionError(message);
+      Alert.alert('Could not rename category', message);
     }
   };
 
@@ -51,8 +63,10 @@ export function CategoriesManager() {
           text: 'Delete',
           style: 'destructive',
           onPress: () => {
-            void remove.mutateAsync(id).catch((error: unknown) => {
-              Alert.alert('Could not delete category', formatErrorMessage(error, 'Delete failed.'));
+            void remove.mutateAsync(id).catch((err: unknown) => {
+              const message = formatErrorMessage(err, 'Delete failed.');
+              setActionError(message);
+              Alert.alert('Could not delete category', message);
             });
           },
         },
@@ -62,6 +76,14 @@ export function CategoriesManager() {
 
   if (isLoading) {
     return <Text variant="bodySecondary">Loading categories...</Text>;
+  }
+
+  if (isError) {
+    return (
+      <Text className="text-status-danger">
+        {formatErrorMessage(error, 'Could not load categories.')}
+      </Text>
+    );
   }
 
   return (
@@ -109,15 +131,25 @@ export function CategoriesManager() {
         </View>
       ))}
 
-      <View className="flex-row gap-3">
+      <View className="flex-row items-center gap-3">
         <Input
           value={newName}
-          onChangeText={setNewName}
+          onChangeText={(value) => {
+            setActionError(null);
+            setNewName(value);
+          }}
           placeholder="New category name"
           className="flex-1"
+          onSubmitEditing={() => void handleCreate()}
         />
-        <Button label="Add" onPress={() => void handleCreate()} />
+        <Button
+          label={isCreating ? 'Adding...' : 'Add'}
+          onPress={() => void handleCreate()}
+          disabled={!newName.trim() || isCreating}
+        />
       </View>
+
+      {actionError ? <Text className="text-sm text-status-danger">{actionError}</Text> : null}
     </View>
   );
 }

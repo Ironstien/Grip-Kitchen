@@ -43,7 +43,7 @@ const columns: Array<{ key: SortKey; label: string; flex: number }> = [
   { key: 'price_unit_of_measure', label: 'Per', flex: 1 },
 ];
 
-function getDefaultUnit(masterUnits: Array<{ symbol: string }>): string {
+function getDefaultUnit(masterUnits: Array<{ symbol: string }> = []): string {
   return (
     masterUnits.find((unit) => unit.symbol === 'each')?.symbol ??
     masterUnits[0]?.symbol ??
@@ -51,7 +51,7 @@ function getDefaultUnit(masterUnits: Array<{ symbol: string }>): string {
   );
 }
 
-function getDefaultCategory(masterCategories: Array<{ name: string }>): string {
+function getDefaultCategory(masterCategories: Array<{ name: string }> = []): string {
   return (
     masterCategories.find((category) => category.name === 'Pantry')?.name ??
     masterCategories[0]?.name ??
@@ -84,7 +84,7 @@ export function MasterIngredientsDesktopSpreadsheet({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [editingCell, setEditingCell] = useState<{ id: string; key: SortKey } | null>(null);
   const [draftValue, setDraftValue] = useState('');
-  const [newRow, setNewRow] = useState<NewRowDraft>(() => createDefaultNewRow([]));
+  const [newRow, setNewRow] = useState<NewRowDraft>(() => createDefaultNewRow([], []));
   const [newRowError, setNewRowError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const { create, update, remove } = useIngredientMutations();

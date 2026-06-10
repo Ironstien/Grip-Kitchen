@@ -41,7 +41,7 @@ export function UnitSelect({
   const { data: fetchedUnits = [], isLoading } = useUserUnits();
   const [open, setOpen] = useState(false);
 
-  const units = unitsProp ?? fetchedUnits;
+  const units = unitsProp ?? fetchedUnits ?? [];
   const grouped = useMemo(() => groupUnits(units), [units]);
   const selected = units.find((unit) => unit.symbol === value);
 

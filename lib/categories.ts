@@ -2,7 +2,7 @@ import type { UserCategory } from '@/types/database';
 
 export function resolveMasterCategoryName(
   name: string,
-  categories: Array<Pick<UserCategory, 'name'>>,
+  categories: Array<Pick<UserCategory, 'name'>> = [],
 ): string | null {
   const normalized = name.trim().toLowerCase();
   if (!normalized) {
