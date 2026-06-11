@@ -18,7 +18,7 @@ import type { IngredientWithConversions } from '@/types/database';
 
 type IngredientFormProps = {
   ingredient?: IngredientWithConversions | null;
-  onSaved: () => void;
+  onSaved: (savedId?: string) => void;
   onCancel: () => void;
 };
 
@@ -101,13 +101,16 @@ export function IngredientForm({ ingredient, onSaved, onCancel }: IngredientForm
     try {
       setIsSaving(true);
 
+      let savedId = ingredient?.id;
+
       if (ingredient) {
         await update.mutateAsync({ id: ingredient.id, input: payload });
       } else {
-        await create.mutateAsync(payload);
+        const saved = await create.mutateAsync(payload);
+        savedId = saved.id;
       }
 
-      onSaved();
+      onSaved(savedId);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Save failed.';
       Alert.alert('Save failed', message);
@@ -130,7 +133,7 @@ export function IngredientForm({ ingredient, onSaved, onCancel }: IngredientForm
           text: 'Delete',
           style: 'destructive',
           onPress: () => {
-            void remove.mutateAsync(ingredient.id).then(onSaved);
+            void remove.mutateAsync(ingredient.id).then(() => onCancel());
           },
         },
       ],

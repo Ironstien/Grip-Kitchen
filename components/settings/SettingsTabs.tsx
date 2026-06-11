@@ -6,7 +6,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useResponsive } from '@/hooks/useResponsive';
 import { cn } from '@/lib/cn';
 
-export type SettingsTab = 'general' | 'master' | 'categories' | 'units' | 'locations';
+export type SettingsTab = 'general' | 'categories' | 'units' | 'locations';
 
 type SettingsTabsProps = {
   activeTab: SettingsTab;
@@ -15,7 +15,6 @@ type SettingsTabsProps = {
 
 const TABS: Array<{ id: SettingsTab; label: string; description?: string }> = [
   { id: 'general', label: 'General', description: 'Account & appearance' },
-  { id: 'master', label: 'Master Ingredient List', description: 'Ingredient catalog' },
   { id: 'categories', label: 'Master Category List', description: 'Group ingredients' },
   { id: 'units', label: 'Master Units List', description: 'Units & conversions' },
   { id: 'locations', label: 'Locations', description: 'Storage locations' },

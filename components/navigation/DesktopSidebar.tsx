@@ -20,6 +20,12 @@ export const MAIN_NAV_ITEMS: NavItem[] = [
     matchPaths: ['/', '/(main)/(tabs)', '/(main)/(tabs)/index'],
   },
   {
+    href: '/(main)/ingredients' as Href,
+    label: 'Ingredients',
+    icon: 'leaf-outline',
+    matchPaths: ['/(main)/ingredients', '/ingredients', '/(main)/(tabs)/ingredients'],
+  },
+  {
     href: '/(main)/inventory' as Href,
     label: 'Pantry',
     icon: 'cube-outline',
@@ -58,6 +64,9 @@ export const SETTINGS_NAV_ITEM: NavItem = {
 };
 
 function isActive(pathname: string, item: NavItem) {
+  if (item.label === 'Ingredients') {
+    return pathname.includes('/ingredients');
+  }
   if (item.label === 'Pantry') {
     return pathname.includes('/inventory') || pathname.includes('/pantry');
   }

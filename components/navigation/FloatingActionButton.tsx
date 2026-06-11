@@ -22,6 +22,14 @@ const FAB_ACTIONS: Record<string, FabAction> = {
   '/(main)/(tabs)/index': {
     label: 'Add meal note',
   },
+  '/(main)/(tabs)/ingredients': {
+    label: 'Add ingredient',
+    href: '/(main)/ingredients/new' as Href,
+  },
+  '/ingredients': {
+    label: 'Add ingredient',
+    href: '/(main)/ingredients/new' as Href,
+  },
   '/pantry': {
     label: 'Add to pantry',
     href: '/(main)/inventory/new',
@@ -57,6 +65,9 @@ function getFabAction(pathname: string): FabAction {
     return FAB_ACTIONS[pathname];
   }
 
+  if (pathname.includes('ingredients')) {
+    return FAB_ACTIONS['/(main)/(tabs)/ingredients'];
+  }
   if (pathname.includes('pantry')) {
     return FAB_ACTIONS['/(main)/(tabs)/pantry'];
   }

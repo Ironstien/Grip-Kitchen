@@ -43,7 +43,7 @@ export default function PantryScreen() {
       <View className={pageHeaderMarginClass(false)}>
         <Heading level={2}>Pantry</Heading>
         <Text variant="caption" className="mt-0.5">
-          Add or remove stock. Edit ingredient details in Settings → Master Ingredient List.
+          Add or remove stock. Edit ingredient details in Ingredients.
         </Text>
       </View>
 
