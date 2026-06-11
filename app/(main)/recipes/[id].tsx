@@ -7,14 +7,16 @@ import {
   RECIPE_DESKTOP_HERO_HEIGHT,
   RecipeDesktopLayout,
 } from '@/components/recipes/RecipeDesktopLayout';
+import { RecipeDetailToolbar } from '@/components/recipes/RecipeDetailToolbar';
 import { RecipeIngredientList } from '@/components/recipes/RecipeIngredientList';
-import { RecipeMetadataPanel } from '@/components/recipes/RecipeMetadataPanel';
+import { RecipeInstructions } from '@/components/recipes/RecipeInstructions';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
 import { detailPaddingClass } from '@/constants/theme';
-import { fieldPanelClassName } from '@/lib/fieldStyles';
+import { useRecipeCostBreakdown } from '@/hooks/useRecipeCostBreakdown';
 import { useRecipe, useRecipeScaling } from '@/hooks/useRecipes';
 import { useResponsive } from '@/hooks/useResponsive';
+import { fieldPanelClassName } from '@/lib/fieldStyles';
 
 export default function RecipeDetailScreen() {
   const router = useRouter();
@@ -24,6 +26,21 @@ export default function RecipeDetailScreen() {
   const { targetServings, setTargetServings } = useRecipeScaling(
     recipe?.base_serving_size ?? 1,
     recipe?.base_serving_size ?? 1,
+  );
+
+  const costBreakdown = useRecipeCostBreakdown(
+    recipe ?? {
+      id: '',
+      user_id: '',
+      title: '',
+      instructions: '',
+      base_serving_size: 1,
+      time_to_cook: null,
+      dietary_tags: [],
+      hero_image_url: null,
+      recipe_ingredients: [],
+    },
+    targetServings,
   );
 
   const servingsControl = (
@@ -39,23 +56,30 @@ export default function RecipeDetailScreen() {
   );
 
   const ingredientsSection = recipe ? (
-    <View className="gap-4">
-      {servingsControl}
-      <RecipeIngredientList recipe={recipe} targetServings={targetServings} />
-    </View>
+    <RecipeIngredientList recipe={recipe} targetServings={targetServings} showCostSummary={!isDesktop} />
   ) : null;
 
-  const instructionsSection = recipe?.instructions ? (
-    <View className={`gap-2 ${isDesktop ? `flex-1 ${fieldPanelClassName}` : ''}`}>
-      <Text variant="label">Instructions</Text>
+  const instructionsContent = recipe?.instructions ? (
+    isDesktop ? (
+      <RecipeInstructions instructions={recipe.instructions} />
+    ) : (
       <Text>{recipe.instructions}</Text>
-    </View>
-  ) : isDesktop ? (
-    <View className={`gap-2 ${fieldPanelClassName}`}>
+    )
+  ) : (
+    <Text variant="bodySecondary">No instructions added yet.</Text>
+  );
+
+  const instructionsSection = (
+    <View className="gap-3">
       <Text variant="label">Instructions</Text>
-      <Text variant="bodySecondary">No instructions added yet.</Text>
+      {instructionsContent}
     </View>
-  ) : null;
+  );
+
+  const dietaryTagsFooter =
+    recipe && recipe.dietary_tags.length > 0 ? (
+      <Text variant="bodySecondary">{recipe.dietary_tags.join(' · ')}</Text>
+    ) : null;
 
   return (
     <View className="flex-1 bg-surface dark:bg-surface-dark">
@@ -63,10 +87,12 @@ export default function RecipeDetailScreen() {
 
       <DetailPaneHeader
         title={recipe?.title ?? 'Recipe'}
-        subtitle={!isDesktop && recipe?.time_to_cook != null ? `${recipe.time_to_cook} min` : undefined}
+        subtitle={
+          !isDesktop && recipe?.time_to_cook != null ? `${recipe.time_to_cook} min` : undefined
+        }
         onBack={() => router.back()}
         actions={
-          recipe
+          !isDesktop && recipe
             ? [
                 {
                   label: 'Edit',
@@ -75,6 +101,19 @@ export default function RecipeDetailScreen() {
                 },
               ]
             : []
+        }
+        toolbar={
+          isDesktop && recipe ? (
+            <RecipeDetailToolbar
+              recipe={recipe}
+              targetServings={targetServings}
+              totalCost={costBreakdown.costs.totalCost}
+              perServingCost={costBreakdown.costs.perServingCost}
+              onEdit={() => router.push(`/(main)/recipes/${recipe.id}/edit` as Href)}
+              onDecreaseServings={() => setTargetServings(Math.max(1, targetServings - 1))}
+              onIncreaseServings={() => setTargetServings(targetServings + 1)}
+            />
+          ) : undefined
         }
       />
 
@@ -96,8 +135,8 @@ export default function RecipeDetailScreen() {
                 ) : undefined
               }
               ingredients={ingredientsSection}
-              metadata={<RecipeMetadataPanel recipe={recipe} />}
               instructions={instructionsSection}
+              footer={dietaryTagsFooter}
             />
           ) : (
             <View className="gap-5">
@@ -109,12 +148,12 @@ export default function RecipeDetailScreen() {
                 />
               ) : null}
 
-              {recipe.dietary_tags.length > 0 && (
-                <Text variant="bodySecondary">{recipe.dietary_tags.join(' · ')}</Text>
-              )}
-
+              {servingsControl}
               {ingredientsSection}
               {instructionsSection}
+              {dietaryTagsFooter ? (
+                <View className={fieldPanelClassName}>{dietaryTagsFooter}</View>
+              ) : null}
             </View>
           )}
         </ScrollView>

@@ -591,12 +591,14 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
   return (
     <ScrollView contentContainerClassName="gap-5 pb-12" keyboardShouldPersistTaps="handled">
       {isDesktop ? (
-        <RecipeDesktopLayout
-          heroImage={heroImagePreview}
-          ingredients={ingredientsFields}
-          metadata={metadataFields}
-          instructions={instructionsField}
-        />
+        <>
+          {metadataFields}
+          <RecipeDesktopLayout
+            heroImage={heroImagePreview}
+            ingredients={ingredientsFields}
+            instructions={instructionsField}
+          />
+        </>
       ) : (
         <>
           {metadataFields}
