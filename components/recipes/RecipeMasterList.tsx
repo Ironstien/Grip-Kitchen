@@ -9,7 +9,8 @@ import {
 } from '@/components/layout/MasterListPane';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
-import { RECIPE_TIME_FILTERS, DIETARY_TAG_PRESETS } from '@/constants/recipes';
+import { RECIPE_TIME_FILTERS } from '@/constants/recipes';
+import { useAllDietaryTags } from '@/hooks/useAllDietaryTags';
 import { useIngredients } from '@/hooks/useIngredients';
 import { useRecipes } from '@/hooks/useRecipes';
 
@@ -32,6 +33,7 @@ export function RecipeMasterList() {
   const [ingredientFilter, setIngredientFilter] = useState<string | null>(null);
 
   const { data: ingredients = [] } = useIngredients();
+  const { tags: dietaryTagOptions } = useAllDietaryTags();
   const { data: recipes = [], isLoading } = useRecipes({
     search,
     maxTime,
@@ -80,7 +82,7 @@ export function RecipeMasterList() {
           <Select
             label="Dietary"
             value={dietaryLabel}
-            options={['All tags', ...DIETARY_TAG_PRESETS]}
+            options={['All tags', ...dietaryTagOptions]}
             onChange={(value) => setDietaryTag(value === 'All tags' ? null : value)}
             className="mt-2"
           />

@@ -8,6 +8,7 @@ import {
   RECIPE_DESKTOP_HERO_HEIGHT,
   RecipeDesktopLayout,
 } from '@/components/recipes/RecipeDesktopLayout';
+import { DietaryTagsEditor } from '@/components/recipes/DietaryTagsEditor';
 import { RecipeIngredientList } from '@/components/recipes/RecipeIngredientList';
 import { AutocompleteInput } from '@/components/ui/AutocompleteInput';
 import { FormField } from '@/components/ui/Form';
@@ -15,7 +16,6 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Text } from '@/components/ui/Text';
-import { DIETARY_TAG_PRESETS } from '@/constants/recipes';
 import { useIngredients } from '@/hooks/useIngredients';
 import { useResponsive } from '@/hooks/useResponsive';
 import { useRecipeMutations, useRecipeScaling } from '@/hooks/useRecipes';
@@ -58,7 +58,6 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
   );
   const [heroImageUrl, setHeroImageUrl] = useState(recipe?.hero_image_url ?? '');
   const [selectedTags, setSelectedTags] = useState<string[]>(recipe?.dietary_tags ?? []);
-  const [customTag, setCustomTag] = useState('');
   const [ingredients, setIngredients] = useState<DraftIngredient[]>(
     recipe?.recipe_ingredients.map((ingredient) => ({
       ingredient_id: ingredient.ingredient_id,
@@ -171,22 +170,6 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
   ]);
 
   const { targetServings, setTargetServings } = useRecipeScaling(Number(baseServings) || 4);
-
-  const toggleTag = (tag: string) => {
-    setSelectedTags((current) =>
-      current.includes(tag) ? current.filter((entry) => entry !== tag) : [...current, tag],
-    );
-  };
-
-  const addCustomTag = () => {
-    const trimmed = customTag.trim();
-    if (!trimmed || selectedTags.includes(trimmed)) {
-      return;
-    }
-
-    setSelectedTags((current) => [...current, trimmed]);
-    setCustomTag('');
-  };
 
   const getAllowedUnitsForIngredient = (ingredientId: string): string[] => {
     const catalogItem = getCatalogItem(ingredientId);
@@ -427,38 +410,6 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
         </FormField>
       </View>
 
-      <View className={fieldPanelClassName}>
-        <Text variant="label" className="mb-2">
-          Dietary tags
-        </Text>
-        <View className="mb-3 flex-row flex-wrap gap-1.5">
-          {DIETARY_TAG_PRESETS.map((tag) => (
-            <Pressable
-              key={tag}
-              onPress={() => toggleTag(tag)}
-              className={cn(
-                fieldSurfaceClassName,
-                'px-2 py-1',
-                selectedTags.includes(tag) && 'border-brand bg-brand/10 dark:border-brand-dark',
-              )}>
-              <Text
-                className={cn(
-                  'text-sm',
-                  selectedTags.includes(tag)
-                    ? 'font-semibold text-brand dark:text-brand-dark'
-                    : 'text-text-secondary dark:text-text-dark-secondary',
-                )}>
-                {tag}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-        <View className="flex-row gap-2">
-          <Input value={customTag} onChangeText={setCustomTag} placeholder="Custom tag" className="flex-1" />
-          <Button label="Add tag" variant="secondary" onPress={addCustomTag} />
-        </View>
-      </View>
-
       {isDesktop ? (
         <View className="gap-3">
           <Text variant="label">Hero photo</Text>
@@ -576,6 +527,10 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
     </FormField>
   );
 
+  const dietaryTagsField = (
+    <DietaryTagsEditor selectedTags={selectedTags} onChange={setSelectedTags} />
+  );
+
   const actionButtons = (
     <View className="flex-row gap-3">
       <Button label="Cancel" variant="ghost" onPress={onCancel} className="flex-1" />
@@ -597,6 +552,7 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
             heroImage={heroImagePreview}
             ingredients={ingredientsFields}
             instructions={instructionsField}
+            footer={dietaryTagsField}
           />
         </>
       ) : (
@@ -605,6 +561,7 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
           {heroPhotoField}
           {ingredientsFields}
           {instructionsField}
+          {dietaryTagsField}
         </>
       )}
       {actionButtons}

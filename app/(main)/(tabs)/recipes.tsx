@@ -7,7 +7,8 @@ import { EmptyState } from '@/components/ui';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Text, Heading } from '@/components/ui/Text';
-import { RECIPE_TIME_FILTERS, DIETARY_TAG_PRESETS } from '@/constants/recipes';
+import { RECIPE_TIME_FILTERS } from '@/constants/recipes';
+import { useAllDietaryTags } from '@/hooks/useAllDietaryTags';
 import { pageHeaderMarginClass, pagePaddingClass } from '@/constants/theme';
 import { useIngredients } from '@/hooks/useIngredients';
 import { useRecipes } from '@/hooks/useRecipes';
@@ -22,6 +23,7 @@ export default function RecipesScreen() {
   const [ingredientFilter, setIngredientFilter] = useState<string | null>(null);
 
   const { data: ingredients = [] } = useIngredients();
+  const { tags: dietaryTagOptions } = useAllDietaryTags();
   const { data: recipes = [], isLoading } = useRecipes({
     search,
     maxTime,
@@ -72,7 +74,7 @@ export default function RecipesScreen() {
         <Select
           label="Dietary tag"
           value={dietaryLabel}
-          options={['All tags', ...DIETARY_TAG_PRESETS]}
+          options={['All tags', ...dietaryTagOptions]}
           onChange={(value) => setDietaryTag(value === 'All tags' ? null : value)}
         />
         {ingredientNames.length > 0 && (
