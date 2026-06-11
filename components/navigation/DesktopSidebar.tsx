@@ -3,8 +3,7 @@ import { Href, usePathname, useRouter } from 'expo-router';
 import { Pressable, View } from 'react-native';
 
 import { Text } from '@/components/ui/Text';
-import { SIDEBAR_WIDTH } from '@/constants/theme';
-import { useTheme } from '@/contexts/ThemeContext';
+import { NAV_SIDEBAR, SIDEBAR_WIDTH } from '@/constants/theme';
 
 type NavItem = {
   href: Href;
@@ -21,16 +20,21 @@ export const MAIN_NAV_ITEMS: NavItem[] = [
     matchPaths: ['/', '/(main)/(tabs)', '/(main)/(tabs)/index'],
   },
   {
-    href: '/(main)/(tabs)/pantry',
+    href: '/(main)/inventory' as Href,
     label: 'Pantry',
     icon: 'cube-outline',
-    matchPaths: ['/(main)/(tabs)/pantry', '/pantry'],
+    matchPaths: [
+      '/(main)/(tabs)/pantry',
+      '/pantry',
+      '/(main)/inventory',
+      '/inventory',
+    ],
   },
   {
-    href: '/(main)/(tabs)/recipes',
+    href: '/(main)/recipes' as Href,
     label: 'Recipes',
     icon: 'book-outline',
-    matchPaths: ['/(main)/(tabs)/recipes', '/recipes'],
+    matchPaths: ['/(main)/(tabs)/recipes', '/recipes', '/(main)/recipes'],
   },
   {
     href: '/(main)/(tabs)/planner',
@@ -54,26 +58,39 @@ export const SETTINGS_NAV_ITEM: NavItem = {
 };
 
 function isActive(pathname: string, item: NavItem) {
-  return item.matchPaths.some((path) => pathname === path || pathname.endsWith(path.replace('/(main)', '')));
+  if (item.label === 'Pantry') {
+    return pathname.includes('/inventory') || pathname.includes('/pantry');
+  }
+  if (item.label === 'Recipes') {
+    return pathname.includes('/recipes');
+  }
+  return item.matchPaths.some(
+    (path) => pathname === path || pathname.endsWith(path.replace('/(main)', '')),
+  );
 }
 
 export function DesktopSidebar() {
   const router = useRouter();
   const pathname = usePathname();
-  const { palette } = useTheme();
 
   const items = [...MAIN_NAV_ITEMS, SETTINGS_NAV_ITEM];
 
   return (
     <View
-      className="h-full border-r border-border bg-surface-secondary dark:border-border-dark dark:bg-[#141414]"
-      style={{ width: SIDEBAR_WIDTH, backgroundColor: palette.sidebar }}>
-      <View className="border-b border-border px-3 py-3 dark:border-border-dark">
-        <Text className="text-sm font-bold text-text dark:text-text-dark">Grip Kitchen</Text>
-        <Text variant="caption">Plan. Cook. Shop.</Text>
+      className="h-full"
+      style={{ width: SIDEBAR_WIDTH, backgroundColor: NAV_SIDEBAR.background }}>
+      <View
+        className="border-b px-4 py-4"
+        style={{ borderBottomColor: NAV_SIDEBAR.border }}>
+        <Text className="text-sm font-bold" style={{ color: NAV_SIDEBAR.text }}>
+          Grip Kitchen
+        </Text>
+        <Text className="text-xs" style={{ color: NAV_SIDEBAR.textMuted }}>
+          Plan. Cook. Shop.
+        </Text>
       </View>
 
-      <View className="flex-1 px-2 py-2">
+      <View className="flex-1 px-2 py-3">
         {items.map((item) => {
           const active = isActive(pathname, item);
           return (
@@ -81,20 +98,23 @@ export function DesktopSidebar() {
               key={item.label}
               accessibilityRole="button"
               onPress={() => router.push(item.href)}
-              className={`mb-0.5 flex-row items-center rounded-card px-2 py-2 ${
-                active ? 'bg-black/5 dark:bg-white/10' : ''
-              }`}>
+              className="mb-0.5 flex-row items-center rounded-card py-2 pl-2 pr-2"
+              style={{
+                backgroundColor: active ? NAV_SIDEBAR.backgroundActive : 'transparent',
+                borderLeftWidth: active ? 3 : 0,
+                borderLeftColor: active ? NAV_SIDEBAR.accent : 'transparent',
+              }}>
               <Ionicons
                 name={item.icon}
                 size={16}
-                color={active ? palette.brand : palette.textSecondary}
+                color={active ? NAV_SIDEBAR.accent : NAV_SIDEBAR.textMuted}
               />
               <Text
-                className={`ml-2 text-xs ${
-                  active
-                    ? 'font-semibold text-text dark:text-text-dark'
-                    : 'text-text-secondary dark:text-text-dark-secondary'
-                }`}>
+                className="ml-2.5 text-xs"
+                style={{
+                  color: active ? NAV_SIDEBAR.text : NAV_SIDEBAR.textMuted,
+                  fontWeight: active ? '600' : '400',
+                }}>
                 {item.label}
               </Text>
             </Pressable>

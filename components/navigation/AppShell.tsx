@@ -16,8 +16,8 @@ export function AppShell() {
 
   return (
     <SafeAreaView
-      className="flex-1 bg-surface dark:bg-surface-dark"
-      style={{ backgroundColor: palette.background }}>
+      className="flex-1 bg-surface-secondary dark:bg-surface-dark-secondary"
+      style={{ backgroundColor: palette.backgroundSecondary }}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <View className="flex-1 flex-row">
         {isDesktop && <DesktopSidebar />}

@@ -2,6 +2,7 @@ import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Href, Stack, useLocalSearchParams, useRouter } from 'expo-router';
 
+import { DetailPaneHeader } from '@/components/layout/DetailPaneHeader';
 import {
   RECIPE_DESKTOP_HERO_HEIGHT,
   RecipeDesktopLayout,
@@ -9,10 +10,9 @@ import {
 import { RecipeIngredientList } from '@/components/recipes/RecipeIngredientList';
 import { RecipeMetadataPanel } from '@/components/recipes/RecipeMetadataPanel';
 import { Button } from '@/components/ui/Button';
-import { IconButton } from '@/components/ui/IconButton';
-import { Heading, Text } from '@/components/ui/Text';
+import { Text } from '@/components/ui/Text';
+import { detailPaddingClass } from '@/constants/theme';
 import { fieldPanelClassName } from '@/lib/fieldStyles';
-import { pagePaddingClass } from '@/constants/theme';
 import { useRecipe, useRecipeScaling } from '@/hooks/useRecipes';
 import { useResponsive } from '@/hooks/useResponsive';
 
@@ -58,63 +58,67 @@ export default function RecipeDetailScreen() {
   ) : null;
 
   return (
-    <ScrollView
-      className="flex-1 bg-surface dark:bg-surface-dark"
-      contentContainerClassName={`${pagePaddingClass(isDesktop)} pb-8`}>
+    <View className="flex-1 bg-surface dark:bg-surface-dark">
       <Stack.Screen options={{ headerShown: false }} />
 
-      <View className="mb-3 flex-row items-center gap-2">
-        <IconButton name="arrow-back" accessibilityLabel="Go back" onPress={() => router.back()} />
-        <View className="flex-1">
-          <Heading level={isDesktop ? 1 : 2}>{recipe?.title ?? 'Recipe'}</Heading>
-          {!isDesktop && recipe?.time_to_cook != null && (
-            <Text variant="caption">{recipe.time_to_cook} min</Text>
-          )}
-        </View>
-        {recipe && (
-          <Button
-            label="Edit"
-            variant="secondary"
-            onPress={() => router.push(`/(main)/recipes/${recipe.id}/edit` as Href)}
-          />
-        )}
-      </View>
+      <DetailPaneHeader
+        title={recipe?.title ?? 'Recipe'}
+        subtitle={!isDesktop && recipe?.time_to_cook != null ? `${recipe.time_to_cook} min` : undefined}
+        onBack={() => router.back()}
+        actions={
+          recipe
+            ? [
+                {
+                  label: 'Edit',
+                  onPress: () => router.push(`/(main)/recipes/${recipe.id}/edit` as Href),
+                  variant: 'secondary',
+                },
+              ]
+            : []
+        }
+      />
 
       {isLoading || !recipe ? (
-        <ActivityIndicator />
-      ) : isDesktop ? (
-        <RecipeDesktopLayout
-          heroImage={
-            recipe.hero_image_url ? (
-              <Image
-                source={{ uri: recipe.hero_image_url }}
-                style={{ width: '100%', height: RECIPE_DESKTOP_HERO_HEIGHT }}
-                contentFit="cover"
-              />
-            ) : undefined
-          }
-          ingredients={ingredientsSection}
-          metadata={<RecipeMetadataPanel recipe={recipe} />}
-          instructions={instructionsSection}
-        />
+        <ActivityIndicator className="mt-8" />
       ) : (
-        <View className="gap-5">
-          {recipe.hero_image_url ? (
-            <Image
-              source={{ uri: recipe.hero_image_url }}
-              style={{ width: '100%', height: 220, borderRadius: 10 }}
-              contentFit="cover"
+        <ScrollView
+          className="flex-1"
+          contentContainerClassName={`${detailPaddingClass(isDesktop)} pb-8`}>
+          {isDesktop ? (
+            <RecipeDesktopLayout
+              heroImage={
+                recipe.hero_image_url ? (
+                  <Image
+                    source={{ uri: recipe.hero_image_url }}
+                    style={{ width: '100%', height: RECIPE_DESKTOP_HERO_HEIGHT }}
+                    contentFit="cover"
+                  />
+                ) : undefined
+              }
+              ingredients={ingredientsSection}
+              metadata={<RecipeMetadataPanel recipe={recipe} />}
+              instructions={instructionsSection}
             />
-          ) : null}
+          ) : (
+            <View className="gap-5">
+              {recipe.hero_image_url ? (
+                <Image
+                  source={{ uri: recipe.hero_image_url }}
+                  style={{ width: '100%', height: 220, borderRadius: 10 }}
+                  contentFit="cover"
+                />
+              ) : null}
 
-          {recipe.dietary_tags.length > 0 && (
-            <Text variant="bodySecondary">{recipe.dietary_tags.join(' · ')}</Text>
+              {recipe.dietary_tags.length > 0 && (
+                <Text variant="bodySecondary">{recipe.dietary_tags.join(' · ')}</Text>
+              )}
+
+              {ingredientsSection}
+              {instructionsSection}
+            </View>
           )}
-
-          {ingredientsSection}
-          {instructionsSection}
-        </View>
+        </ScrollView>
       )}
-    </ScrollView>
+    </View>
   );
 }

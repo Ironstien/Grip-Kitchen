@@ -23,12 +23,12 @@ module.exports = {
       },
       colors: {
         brand: {
-          DEFAULT: '#2563EB',
-          dark: '#3B82F6',
+          DEFAULT: '#2098FF',
+          dark: '#2098FF',
         },
         surface: {
           DEFAULT: '#FFFFFF',
-          secondary: '#F7F7F8',
+          secondary: '#F3F3F3',
           dark: '#191919',
           'dark-secondary': '#252525',
         },

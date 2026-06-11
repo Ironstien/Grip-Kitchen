@@ -1,9 +1,8 @@
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
-import { Href, useRouter } from 'expo-router';
+import { Href, Redirect, useRouter } from 'expo-router';
 
 import { LocationFilterTabs } from '@/components/pantry/LocationFilterTabs';
-import { PantryDesktopSpreadsheet } from '@/components/pantry/PantryDesktopSpreadsheet';
 import { PantryMobileList } from '@/components/pantry/PantryMobileList';
 import { EmptyState } from '@/components/ui';
 import { Input } from '@/components/ui/Input';
@@ -31,14 +30,18 @@ export default function PantryScreen() {
     return items.filter((item) => item.name.toLowerCase().includes(query));
   }, [items, search]);
 
+  if (isDesktop) {
+    return <Redirect href={'/(main)/inventory' as import('expo-router').Href} />;
+  }
+
   const isLoading = locationsLoading || itemsLoading;
 
   return (
     <ScrollView
       className="flex-1 bg-surface dark:bg-surface-dark"
-      contentContainerClassName={`flex-grow ${pagePaddingClass(isDesktop)}`}>
-      <View className={pageHeaderMarginClass(isDesktop)}>
-        <Heading level={isDesktop ? 1 : 2}>Pantry</Heading>
+      contentContainerClassName={`flex-grow ${pagePaddingClass(false)}`}>
+      <View className={pageHeaderMarginClass(false)}>
+        <Heading level={2}>Pantry</Heading>
         <Text variant="caption" className="mt-0.5">
           Add or remove stock. Edit ingredient details in Settings → Master Ingredient List.
         </Text>
@@ -64,16 +67,8 @@ export default function PantryScreen() {
           title="Nothing in pantry yet"
           description="Add ingredients from your master list to start tracking stock and expiry."
           actionLabel="Add to pantry"
-          onAction={() => router.push('/(main)/inventory/new')}
+          onAction={() => router.push('/(main)/inventory/new' as Href)}
         />
-      ) : isDesktop ? (
-        <View className="-mr-5 w-full">
-          <PantryDesktopSpreadsheet
-            items={filteredItems}
-            locations={locations}
-            onAdjustStock={(item) => router.push(`/(main)/inventory/${item.id}` as Href)}
-          />
-        </View>
       ) : (
         <PantryMobileList
           items={filteredItems}

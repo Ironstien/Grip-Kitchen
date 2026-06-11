@@ -1,10 +1,9 @@
-import { View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 
+import { DetailPaneHeader } from '@/components/layout/DetailPaneHeader';
 import { PantryStockForm } from '@/components/pantry/PantryStockForm';
-import { IconButton } from '@/components/ui/IconButton';
-import { Heading, Text } from '@/components/ui/Text';
-import { pagePaddingClass } from '@/constants/theme';
+import { detailPaddingClass } from '@/constants/theme';
 import { useResponsive } from '@/hooks/useResponsive';
 
 export default function NewInventoryItemScreen() {
@@ -12,18 +11,19 @@ export default function NewInventoryItemScreen() {
   const { isDesktop } = useResponsive();
 
   return (
-    <View className={`flex-1 bg-surface dark:bg-surface-dark ${pagePaddingClass(isDesktop)}`}>
+    <View className="flex-1 bg-surface dark:bg-surface-dark">
       <Stack.Screen options={{ headerShown: false }} />
-      <View className="mb-3 flex-row items-center gap-2">
-        <IconButton name="arrow-back" accessibilityLabel="Go back" onPress={() => router.back()} />
-        <View className="flex-1">
-          <Heading level={isDesktop ? 1 : 2}>Add to pantry</Heading>
-          <Text variant="caption">
-            Choose an ingredient from your master list and set stock details.
-          </Text>
-        </View>
-      </View>
-      <PantryStockForm onSaved={() => router.back()} onCancel={() => router.back()} dense={isDesktop} />
+      <DetailPaneHeader
+        title="Add to pantry"
+        subtitle="Choose an ingredient from your master list and set stock details."
+        onBack={() => router.back()}
+      />
+      <ScrollView
+        className="flex-1"
+        contentContainerClassName={detailPaddingClass(isDesktop)}
+        keyboardShouldPersistTaps="handled">
+        <PantryStockForm onSaved={() => router.back()} onCancel={() => router.back()} dense={isDesktop} />
+      </ScrollView>
     </View>
   );
 }
