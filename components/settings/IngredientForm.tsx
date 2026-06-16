@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, View } from 'react-native';
 
 import type { DetailAction } from '@/components/layout/DetailPaneHeader';
@@ -206,6 +206,14 @@ export function IngredientForm({
     );
   }, [ingredient, onCancel, remove]);
 
+  const handleSaveRef = useRef(handleSave);
+  const handleDeleteRef = useRef(handleDelete);
+  const onCancelRef = useRef(onCancel);
+
+  handleSaveRef.current = handleSave;
+  handleDeleteRef.current = handleDelete;
+  onCancelRef.current = onCancel;
+
   useEffect(() => {
     if (!isDesktop || !onHeaderActionsChange) {
       return;
@@ -217,33 +225,25 @@ export function IngredientForm({
       actions.push({
         label: 'Delete ingredient',
         variant: 'ghost',
-        onPress: handleDelete,
+        onPress: () => handleDeleteRef.current(),
       });
     }
 
     actions.push({
       label: 'Cancel',
       variant: 'ghost',
-      onPress: onCancel,
+      onPress: () => onCancelRef.current(),
     });
 
     actions.push({
       label: isSaving ? 'Saving...' : ingredient ? 'Save changes' : 'Add ingredient',
       variant: 'primary',
-      onPress: () => void handleSave(),
+      onPress: () => void handleSaveRef.current(),
       disabled: isSaving,
     });
 
     onHeaderActionsChange(actions);
-  }, [
-    handleDelete,
-    handleSave,
-    ingredient,
-    isDesktop,
-    isSaving,
-    onCancel,
-    onHeaderActionsChange,
-  ]);
+  }, [ingredient?.id, isDesktop, isSaving, onHeaderActionsChange]);
 
   const previewSummary =
     Number(purchaseQty) > 0
