@@ -39,7 +39,7 @@ export function Button({
       className={cn(
         'min-h-[32px] items-center justify-center rounded-button px-3 py-1.5 active:opacity-80',
         variantClasses[variant],
-        disabled && 'opacity-50',
+        disabled ? 'opacity-50' : undefined,
         className,
       )}
       {...props}>

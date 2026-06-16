@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
-import { Alert, ScrollView, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { Alert, View } from 'react-native';
 
+import type { DetailAction } from '@/components/layout/DetailPaneHeader';
 import { IngredientConversionsEditor } from '@/components/settings/IngredientConversionsEditor';
 import { CategorySelect } from '@/components/ui/CategorySelect';
 import { ClipboardImagePicker } from '@/components/ui/ClipboardImagePicker';
@@ -10,10 +11,13 @@ import { Input } from '@/components/ui/Input';
 import { UnitSelect } from '@/components/ui/UnitSelect';
 import { Text } from '@/components/ui/Text';
 import { useIngredientMutations } from '@/hooks/useIngredients';
+import { useResponsive } from '@/hooks/useResponsive';
 import { useUserCategories } from '@/hooks/useUserCategories';
 import { useUserUnits } from '@/hooks/useUserUnits';
 import { isLocalImageUri, revokeLocalImageUri } from '@/lib/clipboardImage';
 import { isMasterCategoryName } from '@/lib/categories';
+import { cn } from '@/lib/cn';
+import { fieldPanelClassName } from '@/lib/fieldStyles';
 import { formatPurchaseSummary } from '@/lib/ingredients';
 import { isMasterUnitSymbol } from '@/lib/units';
 import type { IngredientWithConversions } from '@/types/database';
@@ -22,9 +26,16 @@ type IngredientFormProps = {
   ingredient?: IngredientWithConversions | null;
   onSaved: (savedId?: string) => void;
   onCancel: () => void;
+  onHeaderActionsChange?: (actions: DetailAction[]) => void;
 };
 
-export function IngredientForm({ ingredient, onSaved, onCancel }: IngredientFormProps) {
+export function IngredientForm({
+  ingredient,
+  onSaved,
+  onCancel,
+  onHeaderActionsChange,
+}: IngredientFormProps) {
+  const { isDesktop } = useResponsive();
   const { create, update, remove, uploadImage } = useIngredientMutations();
   const { data: masterUnits = [] } = useUserUnits();
   const { data: masterCategories = [] } = useUserCategories();
@@ -102,7 +113,7 @@ export function IngredientForm({ ingredient, onSaved, onCancel }: IngredientForm
     return true;
   };
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!validate()) {
       return;
     }
@@ -157,9 +168,24 @@ export function IngredientForm({ ingredient, onSaved, onCancel }: IngredientForm
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [
+    category,
+    create,
+    displayName,
+    imageMimeType,
+    imageUrl,
+    ingredient,
+    name,
+    onSaved,
+    purchasePrice,
+    purchaseQty,
+    purchaseUnit,
+    stockUnit,
+    update,
+    uploadImage,
+  ]);
 
-  const handleDelete = () => {
+  const handleDelete = useCallback(() => {
     if (!ingredient) {
       return;
     }
@@ -178,7 +204,46 @@ export function IngredientForm({ ingredient, onSaved, onCancel }: IngredientForm
         },
       ],
     );
-  };
+  }, [ingredient, onCancel, remove]);
+
+  useEffect(() => {
+    if (!isDesktop || !onHeaderActionsChange) {
+      return;
+    }
+
+    const actions: DetailAction[] = [];
+
+    if (ingredient) {
+      actions.push({
+        label: 'Delete ingredient',
+        variant: 'ghost',
+        onPress: handleDelete,
+      });
+    }
+
+    actions.push({
+      label: 'Cancel',
+      variant: 'ghost',
+      onPress: onCancel,
+    });
+
+    actions.push({
+      label: isSaving ? 'Saving...' : ingredient ? 'Save changes' : 'Add ingredient',
+      variant: 'primary',
+      onPress: () => void handleSave(),
+      disabled: isSaving,
+    });
+
+    onHeaderActionsChange(actions);
+  }, [
+    handleDelete,
+    handleSave,
+    ingredient,
+    isDesktop,
+    isSaving,
+    onCancel,
+    onHeaderActionsChange,
+  ]);
 
   const previewSummary =
     Number(purchaseQty) > 0
@@ -189,54 +254,113 @@ export function IngredientForm({ ingredient, onSaved, onCancel }: IngredientForm
         })
       : null;
 
-  return (
-    <ScrollView contentContainerClassName="gap-4 pb-6" keyboardShouldPersistTaps="handled">
-      <View className="flex-row gap-4">
-        <View className="min-w-0 flex-1 gap-4">
-          <FormField label="Store name">
-            <Input
-              value={name}
-              onChangeText={setName}
-              placeholder="Exact name from Woolworths receipt"
-            />
-          </FormField>
+  const imagePicker = (
+    <ClipboardImagePicker
+      className={isDesktop ? 'w-[140px] shrink-0' : 'w-full'}
+      height={isDesktop ? 88 : 180}
+      value={imageUrl}
+      onChange={(uri, mimeType) => {
+        revokeLocalImageUri(imageUrl);
+        setImageUrl(uri);
+        setImageMimeType(mimeType);
+      }}
+      onClear={() => {
+        revokeLocalImageUri(imageUrl);
+        setImageUrl('');
+        setImageMimeType(undefined);
+      }}
+    />
+  );
 
-          <FormField label="Display name">
-            <Input
-              value={displayName}
-              onChangeText={setDisplayName}
-              placeholder="Short name shown in recipes"
-            />
-          </FormField>
-
-          <CategorySelect label="Category" value={category} onChange={setCategory} />
-        </View>
-
-        <ClipboardImagePicker
-          className="w-[180px] shrink-0"
-          value={imageUrl}
-          onChange={(uri, mimeType) => {
-            revokeLocalImageUri(imageUrl);
-            setImageUrl(uri);
-            setImageMimeType(mimeType);
-          }}
-          onClear={() => {
-            revokeLocalImageUri(imageUrl);
-            setImageUrl('');
-            setImageMimeType(undefined);
-          }}
+  const identityFields = isDesktop ? (
+    <View className="flex-row items-start gap-3">
+      <FormField label="Store name" className="min-w-0 flex-[1.4]">
+        <Input
+          value={name}
+          onChangeText={setName}
+          placeholder="Exact name from Woolworths receipt"
         />
-      </View>
+      </FormField>
 
-      <View className="gap-2">
-        <Text variant="label">Purchase price (AUD)</Text>
+      <FormField label="Display name" className="min-w-0 flex-1">
+        <Input
+          value={displayName}
+          onChangeText={setDisplayName}
+          placeholder="Short name shown in recipes"
+        />
+      </FormField>
+
+      <CategorySelect label="Category" value={category} onChange={setCategory} className="min-w-0 flex-1" />
+
+      {imagePicker}
+    </View>
+  ) : (
+    <View className="gap-4">
+      <FormField label="Store name">
+        <Input
+          value={name}
+          onChangeText={setName}
+          placeholder="Exact name from Woolworths receipt"
+        />
+      </FormField>
+
+      <FormField label="Display name">
+        <Input
+          value={displayName}
+          onChangeText={setDisplayName}
+          placeholder="Short name shown in recipes"
+        />
+      </FormField>
+
+      <CategorySelect label="Category" value={category} onChange={setCategory} />
+      {imagePicker}
+    </View>
+  );
+
+  const purchaseFields = isDesktop ? (
+    <View className="flex-row items-end gap-3">
+      <FormField label="Purchase price (AUD)" className="w-[108px] shrink-0">
+        <Input
+          value={purchasePrice}
+          onChangeText={setPurchasePrice}
+          keyboardType="decimal-pad"
+          placeholder="0.00"
+        />
+      </FormField>
+
+      <FormField label="Purchase QTY" className="w-[72px] shrink-0">
+        <Input
+          value={purchaseQty}
+          onChangeText={setPurchaseQty}
+          keyboardType="decimal-pad"
+          placeholder="1"
+        />
+      </FormField>
+
+      <FormField label="Purchase unit" className="min-w-0 flex-1">
+        <UnitSelect value={purchaseUnit} onChange={setPurchaseUnit} />
+      </FormField>
+
+      <FormField label="Stock unit (pantry)" className="min-w-0 flex-1">
+        <UnitSelect value={stockUnit} onChange={setStockUnit} />
+      </FormField>
+
+      {previewSummary ? (
+        <View className={cn('min-h-[32px] shrink-0 justify-center rounded-button px-3 py-2', fieldPanelClassName)}>
+          <Text variant="bodySecondary">{previewSummary}</Text>
+        </View>
+      ) : null}
+    </View>
+  ) : (
+    <View className="gap-4">
+      <FormField label="Purchase price (AUD)">
         <Input
           value={purchasePrice}
           onChangeText={setPurchasePrice}
           keyboardType="decimal-pad"
           placeholder="e.g. 6.00"
         />
-      </View>
+      </FormField>
 
       <View className="flex-row gap-3">
         <FormField label="Purchase QTY" className="flex-1">
@@ -259,9 +383,14 @@ export function IngredientForm({ ingredient, onSaved, onCancel }: IngredientForm
         </Text>
       </FormField>
 
-      {previewSummary ? (
-        <Text variant="bodySecondary">{previewSummary}</Text>
-      ) : null}
+      {previewSummary ? <Text variant="bodySecondary">{previewSummary}</Text> : null}
+    </View>
+  );
+
+  return (
+    <View className="gap-5 pb-6">
+      {identityFields}
+      {purchaseFields}
 
       {ingredient ? (
         <View className="gap-2 border-t border-border pt-4 dark:border-border-dark">
@@ -274,19 +403,23 @@ export function IngredientForm({ ingredient, onSaved, onCancel }: IngredientForm
         </Text>
       )}
 
-      <View className="mt-2 flex-row gap-3">
-        <Button label="Cancel" variant="ghost" onPress={onCancel} className="flex-1" />
-        <Button
-          label={isSaving ? 'Saving...' : ingredient ? 'Save changes' : 'Add ingredient'}
-          onPress={() => void handleSave()}
-          disabled={isSaving}
-          className="flex-1"
-        />
-      </View>
+      {!isDesktop ? (
+        <View className="mt-2 gap-3">
+          <View className="flex-row gap-3">
+            <Button label="Cancel" variant="ghost" onPress={onCancel} className="flex-1" />
+            <Button
+              label={isSaving ? 'Saving...' : ingredient ? 'Save changes' : 'Add ingredient'}
+              onPress={() => void handleSave()}
+              disabled={isSaving}
+              className="flex-1"
+            />
+          </View>
 
-      {ingredient ? (
-        <Button label="Delete ingredient" variant="ghost" onPress={handleDelete} className="mt-2" />
+          {ingredient ? (
+            <Button label="Delete ingredient" variant="ghost" onPress={handleDelete} />
+          ) : null}
+        </View>
       ) : null}
-    </ScrollView>
+    </View>
   );
 }

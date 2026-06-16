@@ -7,10 +7,11 @@ import { Heading, Text } from '@/components/ui/Text';
 import { detailPaddingClass } from '@/constants/theme';
 import { useResponsive } from '@/hooks/useResponsive';
 
-type DetailAction = {
+export type DetailAction = {
   label: string;
   onPress: () => void;
   variant?: 'primary' | 'secondary' | 'ghost';
+  disabled?: boolean;
 };
 
 type DetailPaneHeaderProps = {
@@ -18,6 +19,7 @@ type DetailPaneHeaderProps = {
   subtitle?: string;
   onBack?: () => void;
   actions?: DetailAction[];
+  actionsPlacement?: 'below' | 'inline';
   toolbar?: ReactNode;
 };
 
@@ -26,38 +28,55 @@ export function DetailPaneHeader({
   subtitle,
   onBack,
   actions = [],
+  actionsPlacement = 'below',
   toolbar,
 }: DetailPaneHeaderProps) {
   const { isDesktop } = useResponsive();
+  const inlineActions = actionsPlacement === 'inline';
+
+  const actionButtons = actions.map((action) => (
+    <Button
+      key={action.label}
+      label={action.label}
+      variant={action.variant ?? 'secondary'}
+      onPress={action.onPress}
+      disabled={action.disabled}
+    />
+  ));
 
   return (
     <View className={`border-b border-border dark:border-border-dark ${detailPaddingClass(isDesktop)}`}>
-      <View className="flex-row items-start gap-2">
-        {!isDesktop && onBack ? (
-          <IconButton name="arrow-back" accessibilityLabel="Go back" onPress={onBack} />
-        ) : null}
-        <View className="min-w-0 flex-1">
-          <Heading level={isDesktop ? 1 : 2}>{title}</Heading>
-          {subtitle ? (
-            <Text variant="caption" className="mt-0.5">
-              {subtitle}
-            </Text>
+      <View className="flex-row items-start justify-between gap-4">
+        <View className="min-w-0 flex-1 flex-row items-start gap-2">
+          {!isDesktop && onBack ? (
+            <IconButton name="arrow-back" accessibilityLabel="Go back" onPress={onBack} />
           ) : null}
+          <View className="min-w-0 flex-1">
+            <Heading level={isDesktop ? 1 : 2}>{title}</Heading>
+            {subtitle ? (
+              <Text variant="caption" className="mt-0.5">
+                {subtitle}
+              </Text>
+            ) : null}
+          </View>
         </View>
+
+        {inlineActions && actions.length > 0 ? (
+          <View className="shrink-0 flex-row flex-wrap items-center justify-end gap-2">
+            {actionButtons}
+          </View>
+        ) : null}
       </View>
 
-      {actions.length > 0 || toolbar ? (
+      {!inlineActions && (actions.length > 0 || toolbar) ? (
         <View className="mt-3 flex-row flex-wrap items-center gap-2">
-          {actions.map((action) => (
-            <Button
-              key={action.label}
-              label={action.label}
-              variant={action.variant ?? 'secondary'}
-              onPress={action.onPress}
-            />
-          ))}
+          {actionButtons}
           {toolbar}
         </View>
+      ) : null}
+
+      {inlineActions && toolbar ? (
+        <View className="mt-3 flex-row flex-wrap items-center gap-2">{toolbar}</View>
       ) : null}
     </View>
   );
