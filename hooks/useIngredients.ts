@@ -7,6 +7,7 @@ import {
   fetchIngredient,
   fetchIngredients,
   updateIngredient,
+  uploadIngredientImage,
   type IngredientInsertInput,
   type IngredientUpdateInput,
 } from '@/lib/services/ingredients';
@@ -51,5 +52,18 @@ export function useIngredientMutations() {
     onSuccess: invalidate,
   });
 
-  return { create, update, remove };
+  const uploadImage = useMutation({
+    mutationFn: ({
+      ingredientId,
+      uri,
+      mimeType,
+    }: {
+      ingredientId: string;
+      uri: string;
+      mimeType?: string;
+    }) => uploadIngredientImage(ingredientId, uri, mimeType),
+    onSuccess: invalidate,
+  });
+
+  return { create, update, remove, uploadImage };
 }

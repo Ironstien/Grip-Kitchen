@@ -3,6 +3,7 @@ import { Alert, ScrollView, View } from 'react-native';
 
 import { IngredientConversionsEditor } from '@/components/settings/IngredientConversionsEditor';
 import { CategorySelect } from '@/components/ui/CategorySelect';
+import { ClipboardImagePicker } from '@/components/ui/ClipboardImagePicker';
 import { FormField } from '@/components/ui/Form';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -11,6 +12,7 @@ import { Text } from '@/components/ui/Text';
 import { useIngredientMutations } from '@/hooks/useIngredients';
 import { useUserCategories } from '@/hooks/useUserCategories';
 import { useUserUnits } from '@/hooks/useUserUnits';
+import { isLocalImageUri, revokeLocalImageUri } from '@/lib/clipboardImage';
 import { isMasterCategoryName } from '@/lib/categories';
 import { formatPurchaseSummary } from '@/lib/ingredients';
 import { isMasterUnitSymbol } from '@/lib/units';
@@ -23,7 +25,7 @@ type IngredientFormProps = {
 };
 
 export function IngredientForm({ ingredient, onSaved, onCancel }: IngredientFormProps) {
-  const { create, update, remove } = useIngredientMutations();
+  const { create, update, remove, uploadImage } = useIngredientMutations();
   const { data: masterUnits = [] } = useUserUnits();
   const { data: masterCategories = [] } = useUserCategories();
 
@@ -34,7 +36,24 @@ export function IngredientForm({ ingredient, onSaved, onCancel }: IngredientForm
   const [purchaseQty, setPurchaseQty] = useState(String(ingredient?.purchase_qty ?? 1));
   const [purchaseUnit, setPurchaseUnit] = useState(ingredient?.purchase_unit ?? 'pack');
   const [stockUnit, setStockUnit] = useState(ingredient?.stock_unit ?? ingredient?.purchase_unit ?? 'pack');
+  const [imageUrl, setImageUrl] = useState(ingredient?.image_url ?? '');
+  const [imageMimeType, setImageMimeType] = useState<string | undefined>();
   const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    setName(ingredient?.name ?? '');
+    setDisplayName(ingredient?.display_name ?? '');
+    setCategory(ingredient?.category ?? masterCategories[0]?.name ?? '');
+    setPurchasePrice(String(ingredient?.purchase_price ?? 0));
+    setPurchaseQty(String(ingredient?.purchase_qty ?? 1));
+    setPurchaseUnit(ingredient?.purchase_unit ?? 'pack');
+    setStockUnit(ingredient?.stock_unit ?? ingredient?.purchase_unit ?? 'pack');
+    setImageUrl((current) => {
+      revokeLocalImageUri(current);
+      return ingredient?.image_url ?? '';
+    });
+    setImageMimeType(undefined);
+  }, [ingredient, masterCategories]);
 
   useEffect(() => {
     if (!ingredient && masterCategories.length > 0 && !isMasterCategoryName(category, masterCategories)) {
@@ -96,6 +115,8 @@ export function IngredientForm({ ingredient, onSaved, onCancel }: IngredientForm
       purchase_qty: Number(purchaseQty),
       purchase_unit: purchaseUnit,
       stock_unit: stockUnit,
+      image_url:
+        imageUrl && !isLocalImageUri(imageUrl) ? imageUrl : ingredient?.image_url ?? null,
     };
 
     try {
@@ -108,6 +129,25 @@ export function IngredientForm({ ingredient, onSaved, onCancel }: IngredientForm
       } else {
         const saved = await create.mutateAsync(payload);
         savedId = saved.id;
+      }
+
+      if (savedId) {
+        if (imageUrl && isLocalImageUri(imageUrl)) {
+          const publicUrl = await uploadImage.mutateAsync({
+            ingredientId: savedId,
+            uri: imageUrl,
+            mimeType: imageMimeType,
+          });
+          await update.mutateAsync({
+            id: savedId,
+            input: { image_url: publicUrl },
+          });
+        } else if (!imageUrl && ingredient?.image_url) {
+          await update.mutateAsync({
+            id: savedId,
+            input: { image_url: null },
+          });
+        }
       }
 
       onSaved(savedId);
@@ -151,23 +191,42 @@ export function IngredientForm({ ingredient, onSaved, onCancel }: IngredientForm
 
   return (
     <ScrollView contentContainerClassName="gap-4 pb-6" keyboardShouldPersistTaps="handled">
-      <FormField label="Store name">
-        <Input
-          value={name}
-          onChangeText={setName}
-          placeholder="Exact name from Woolworths receipt"
-        />
-      </FormField>
+      <View className="flex-row gap-4">
+        <View className="min-w-0 flex-1 gap-4">
+          <FormField label="Store name">
+            <Input
+              value={name}
+              onChangeText={setName}
+              placeholder="Exact name from Woolworths receipt"
+            />
+          </FormField>
 
-      <FormField label="Display name">
-        <Input
-          value={displayName}
-          onChangeText={setDisplayName}
-          placeholder="Short name shown in recipes"
-        />
-      </FormField>
+          <FormField label="Display name">
+            <Input
+              value={displayName}
+              onChangeText={setDisplayName}
+              placeholder="Short name shown in recipes"
+            />
+          </FormField>
 
-      <CategorySelect label="Category" value={category} onChange={setCategory} />
+          <CategorySelect label="Category" value={category} onChange={setCategory} />
+        </View>
+
+        <ClipboardImagePicker
+          className="w-[180px] shrink-0"
+          value={imageUrl}
+          onChange={(uri, mimeType) => {
+            revokeLocalImageUri(imageUrl);
+            setImageUrl(uri);
+            setImageMimeType(mimeType);
+          }}
+          onClear={() => {
+            revokeLocalImageUri(imageUrl);
+            setImageUrl('');
+            setImageMimeType(undefined);
+          }}
+        />
+      </View>
 
       <View className="gap-2">
         <Text variant="label">Purchase price (AUD)</Text>

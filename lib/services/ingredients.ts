@@ -17,6 +17,7 @@ export type IngredientInsertInput = {
   purchase_qty: number;
   purchase_unit: string;
   stock_unit: string;
+  image_url?: string | null;
 };
 
 export type IngredientUpdateInput = Partial<IngredientInsertInput>;
@@ -165,4 +166,39 @@ export async function deleteIngredient(id: string): Promise<void> {
   if (error) {
     throw error;
   }
+}
+
+export async function uploadIngredientImage(
+  ingredientId: string,
+  uri: string,
+  mimeType = 'image/jpeg',
+): Promise<string> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error('Not authenticated');
+  }
+
+  const extension = mimeType.split('/')[1] ?? 'jpg';
+  const path = `${user.id}/${ingredientId}/${Date.now()}.${extension}`;
+
+  const response = await fetch(uri);
+  const blob = await response.blob();
+
+  const { error: uploadError } = await supabase.storage
+    .from('ingredient-photos')
+    .upload(path, blob, {
+      contentType: mimeType,
+      upsert: true,
+    });
+
+  if (uploadError) {
+    throw uploadError;
+  }
+
+  const { data } = supabase.storage.from('ingredient-photos').getPublicUrl(path);
+
+  return data.publicUrl;
 }

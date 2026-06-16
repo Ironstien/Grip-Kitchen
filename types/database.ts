@@ -140,6 +140,7 @@ export type Database = {
           unit_of_measure: string;
           price_per_unit: number;
           price_unit_of_measure: string;
+          image_url: string | null;
         };
         Insert: {
           id?: string;
@@ -154,6 +155,7 @@ export type Database = {
           unit_of_measure?: string;
           price_per_unit?: number;
           price_unit_of_measure?: string;
+          image_url?: string | null;
         };
         Update: {
           id?: string;
@@ -168,6 +170,7 @@ export type Database = {
           unit_of_measure?: string;
           price_per_unit?: number;
           price_unit_of_measure?: string;
+          image_url?: string | null;
         };
         Relationships: [
           {
