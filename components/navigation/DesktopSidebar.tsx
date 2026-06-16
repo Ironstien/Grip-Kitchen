@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import { Href, usePathname, useRouter } from 'expo-router';
 import { Pressable, View } from 'react-native';
 
@@ -81,6 +82,7 @@ function isActive(pathname: string, item: NavItem) {
 export function DesktopSidebar() {
   const router = useRouter();
   const pathname = usePathname();
+  const appVersion = Constants.expoConfig?.version ?? '0.0.0';
 
   const items = [...MAIN_NAV_ITEMS, SETTINGS_NAV_ITEM];
 
@@ -129,6 +131,14 @@ export function DesktopSidebar() {
             </Pressable>
           );
         })}
+      </View>
+
+      <View
+        className="border-t px-4 py-3"
+        style={{ borderTopColor: NAV_SIDEBAR.border }}>
+        <Text className="text-[10px]" style={{ color: NAV_SIDEBAR.textMuted }}>
+          v{appVersion}
+        </Text>
       </View>
     </View>
   );
