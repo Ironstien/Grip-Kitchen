@@ -75,6 +75,8 @@ export default function IngredientsScreen() {
               title={ingredient.name}
               subtitle={getIngredientDisplayName(ingredient)}
               meta={`${ingredient.category} · ${formatPurchaseSummary(ingredient)}`}
+              imageUrl={ingredient.image_url}
+              showThumbnail
               onPress={() => router.push(`/(main)/ingredients/${ingredient.id}` as Href)}
             />
           ))}

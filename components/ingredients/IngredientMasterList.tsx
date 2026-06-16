@@ -76,6 +76,8 @@ export function IngredientMasterList() {
                   : ingredient.category
               }
               meta={ingredient.category}
+              imageUrl={ingredient.image_url}
+              showThumbnail
               selected={selectedId === ingredient.id}
               onPress={() => router.push(`/(main)/ingredients/${ingredient.id}` as Href)}
             />

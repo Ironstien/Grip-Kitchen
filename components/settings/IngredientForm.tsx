@@ -22,6 +22,8 @@ import { formatPurchaseSummary } from '@/lib/ingredients';
 import { isMasterUnitSymbol } from '@/lib/units';
 import type { IngredientWithConversions } from '@/types/database';
 
+const DESKTOP_PHOTO_SIZE = 96;
+
 type IngredientFormProps = {
   ingredient?: IngredientWithConversions | null;
   onSaved: (savedId?: string) => void;
@@ -256,8 +258,10 @@ export function IngredientForm({
 
   const imagePicker = (
     <ClipboardImagePicker
-      className={isDesktop ? 'w-[140px] shrink-0' : 'w-full'}
-      height={isDesktop ? 88 : 180}
+      className={isDesktop ? 'shrink-0' : 'w-full'}
+      size={isDesktop ? DESKTOP_PHOTO_SIZE : undefined}
+      height={isDesktop ? undefined : 180}
+      compact={isDesktop}
       value={imageUrl}
       onChange={(uri, mimeType) => {
         revokeLocalImageUri(imageUrl);
@@ -272,52 +276,7 @@ export function IngredientForm({
     />
   );
 
-  const identityFields = isDesktop ? (
-    <View className="flex-row items-start gap-3">
-      <FormField label="Store name" className="min-w-0 flex-[1.4]">
-        <Input
-          value={name}
-          onChangeText={setName}
-          placeholder="Exact name from Woolworths receipt"
-        />
-      </FormField>
-
-      <FormField label="Display name" className="min-w-0 flex-1">
-        <Input
-          value={displayName}
-          onChangeText={setDisplayName}
-          placeholder="Short name shown in recipes"
-        />
-      </FormField>
-
-      <CategorySelect label="Category" value={category} onChange={setCategory} className="min-w-0 flex-1" />
-
-      {imagePicker}
-    </View>
-  ) : (
-    <View className="gap-4">
-      <FormField label="Store name">
-        <Input
-          value={name}
-          onChangeText={setName}
-          placeholder="Exact name from Woolworths receipt"
-        />
-      </FormField>
-
-      <FormField label="Display name">
-        <Input
-          value={displayName}
-          onChangeText={setDisplayName}
-          placeholder="Short name shown in recipes"
-        />
-      </FormField>
-
-      <CategorySelect label="Category" value={category} onChange={setCategory} />
-      {imagePicker}
-    </View>
-  );
-
-  const purchaseFields = isDesktop ? (
+  const purchaseRow = (
     <View className="flex-row items-end gap-3">
       <FormField label="Purchase price (AUD)" className="w-[108px] shrink-0">
         <Input
@@ -346,12 +305,76 @@ export function IngredientForm({
       </FormField>
 
       {previewSummary ? (
-        <View className={cn('min-h-[32px] shrink-0 justify-center rounded-button px-3 py-2', fieldPanelClassName)}>
+        <View
+          className={cn(
+            'min-h-[32px] shrink-0 justify-center rounded-button px-3 py-2',
+            fieldPanelClassName,
+          )}>
           <Text variant="bodySecondary">{previewSummary}</Text>
         </View>
       ) : null}
     </View>
-  ) : (
+  );
+
+  const desktopForm = (
+    <View className="flex-row items-center gap-3">
+      <View className="min-w-0 flex-1 gap-3">
+        <View className="flex-row items-start gap-3">
+          <FormField label="Store name" className="min-w-0 flex-[1.4]">
+            <Input
+              value={name}
+              onChangeText={setName}
+              placeholder="Exact name from Woolworths receipt"
+            />
+          </FormField>
+
+          <FormField label="Display name" className="min-w-0 flex-1">
+            <Input
+              value={displayName}
+              onChangeText={setDisplayName}
+              placeholder="Short name shown in recipes"
+            />
+          </FormField>
+
+          <CategorySelect
+            label="Category"
+            value={category}
+            onChange={setCategory}
+            className="min-w-0 flex-1"
+          />
+        </View>
+
+        {purchaseRow}
+      </View>
+
+      {imagePicker}
+    </View>
+  );
+
+  const mobileForm = (
+    <View className="gap-4">
+      <FormField label="Store name">
+        <Input
+          value={name}
+          onChangeText={setName}
+          placeholder="Exact name from Woolworths receipt"
+        />
+      </FormField>
+
+      <FormField label="Display name">
+        <Input
+          value={displayName}
+          onChangeText={setDisplayName}
+          placeholder="Short name shown in recipes"
+        />
+      </FormField>
+
+      <CategorySelect label="Category" value={category} onChange={setCategory} />
+      {imagePicker}
+    </View>
+  );
+
+  const purchaseFields = isDesktop ? null : (
     <View className="gap-4">
       <FormField label="Purchase price (AUD)">
         <Input
@@ -388,8 +411,8 @@ export function IngredientForm({
   );
 
   return (
-    <View className="gap-5 pb-6">
-      {identityFields}
+    <View className="gap-4 pb-6">
+      {isDesktop ? desktopForm : mobileForm}
       {purchaseFields}
 
       {ingredient ? (

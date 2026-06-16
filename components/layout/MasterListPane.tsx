@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { IngredientThumbnail } from '@/components/ui/IngredientThumbnail';
 import { Text } from '@/components/ui/Text';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -60,6 +61,8 @@ type MasterListRowProps = {
   meta?: string;
   badge?: ReactNode;
   trailing?: string;
+  imageUrl?: string | null;
+  showThumbnail?: boolean;
   selected?: boolean;
   onPress: () => void;
 };
@@ -70,6 +73,8 @@ export function MasterListRow({
   meta,
   badge,
   trailing,
+  imageUrl,
+  showThumbnail = false,
   selected = false,
   onPress,
 }: MasterListRowProps) {
@@ -85,33 +90,39 @@ export function MasterListRow({
         borderLeftWidth: selected ? 3 : 0,
         borderLeftColor: selected ? palette.brand : 'transparent',
       }}>
-      <View className="flex-row items-start justify-between gap-2">
-        <Text className="flex-1 text-sm font-semibold text-text dark:text-text-dark" numberOfLines={1}>
-          {title}
-        </Text>
-        {trailing ? (
-          <Text className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary">
-            {trailing}
-          </Text>
-        ) : null}
-      </View>
-      {subtitle ? (
-        <Text variant="caption" className="mt-0.5" numberOfLines={1}>
-          {subtitle}
-        </Text>
-      ) : null}
-      {meta || badge ? (
-        <View className="mt-1 flex-row items-center justify-between gap-2">
-          {meta ? (
-            <Text variant="caption" numberOfLines={1}>
-              {meta}
+      <View className="flex-row items-center gap-2.5">
+        <View className="min-w-0 flex-1">
+          <View className="flex-row items-start justify-between gap-2">
+            <Text className="flex-1 text-sm font-semibold text-text dark:text-text-dark" numberOfLines={1}>
+              {title}
             </Text>
-          ) : (
-            <View />
-          )}
-          {badge}
+            {trailing ? (
+              <Text className="text-xs font-medium text-text-secondary dark:text-text-dark-secondary">
+                {trailing}
+              </Text>
+            ) : null}
+          </View>
+          {subtitle ? (
+            <Text variant="caption" className="mt-0.5" numberOfLines={1}>
+              {subtitle}
+            </Text>
+          ) : null}
+          {meta || badge ? (
+            <View className="mt-1 flex-row items-center justify-between gap-2">
+              {meta ? (
+                <Text variant="caption" numberOfLines={1}>
+                  {meta}
+                </Text>
+              ) : (
+                <View />
+              )}
+              {badge}
+            </View>
+          ) : null}
         </View>
-      ) : null}
+
+        {showThumbnail ? <IngredientThumbnail uri={imageUrl} size={40} /> : null}
+      </View>
     </Pressable>
   );
 }

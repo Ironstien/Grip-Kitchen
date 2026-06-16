@@ -1,5 +1,6 @@
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
+import { Ionicons } from '@expo/vector-icons';
 import { useEffect } from 'react';
 import { Alert, Platform, Pressable, View } from 'react-native';
 
@@ -14,6 +15,8 @@ type ClipboardImagePickerProps = {
   onClear?: () => void;
   label?: string;
   height?: number;
+  size?: number;
+  compact?: boolean;
   className?: string;
 };
 
@@ -23,6 +26,8 @@ export function ClipboardImagePicker({
   onClear,
   label = 'Photo',
   height = 180,
+  size,
+  compact = false,
   className,
 }: ClipboardImagePickerProps) {
   useEffect(() => {
@@ -77,24 +82,42 @@ export function ClipboardImagePicker({
         </Text>
       ) : null}
 
-      <Pressable
-        onPress={() => void handlePress()}
-        accessibilityRole="button"
-        accessibilityLabel={placeholderText}
-        className={cn('cursor-pointer overflow-hidden', fieldPanelClassName)}
-        style={{ height }}>
-        {value ? (
-          <Image source={{ uri: value }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
-        ) : (
-          <View className="h-full items-center justify-center border border-dashed border-field-border px-3">
-            <Text variant="caption" className="text-center">
-              {placeholderText}
-            </Text>
-          </View>
-        )}
-      </Pressable>
+      <View className="relative" style={{ width: size, height: size ? size : undefined }}>
+        <Pressable
+          onPress={() => void handlePress()}
+          accessibilityRole="button"
+          accessibilityLabel={placeholderText}
+          className={cn('cursor-pointer overflow-hidden', fieldPanelClassName)}
+          style={size ? { width: size, height: size } : { height }}>
+          {value ? (
+            <Image
+              source={{ uri: value }}
+              style={{ width: '100%', height: '100%' }}
+              contentFit="cover"
+            />
+          ) : (
+            <View
+              className="h-full w-full items-center justify-center border border-dashed border-field-border px-2"
+              style={size ? { width: size, height: size } : undefined}>
+              <Text variant="caption" className="text-center">
+                {compact ? 'Paste' : placeholderText}
+              </Text>
+            </View>
+          )}
+        </Pressable>
 
-      {value && onClear ? (
+        {value && onClear && compact ? (
+          <Pressable
+            onPress={onClear}
+            accessibilityRole="button"
+            accessibilityLabel="Remove photo"
+            className="absolute -right-1 -top-1 rounded-full bg-surface p-0.5 shadow-field dark:bg-surface-dark">
+            <Ionicons name="close-circle" size={18} color="#666666" />
+          </Pressable>
+        ) : null}
+      </View>
+
+      {value && onClear && !compact ? (
         <Pressable onPress={onClear} className="mt-1 self-start">
           <Text variant="caption" className="text-brand dark:text-brand-dark">
             Remove photo
