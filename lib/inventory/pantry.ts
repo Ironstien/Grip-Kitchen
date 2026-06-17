@@ -11,6 +11,7 @@ export type PantryItem = InventoryItem & {
   purchase_unit: string;
   price_per_unit: number;
   price_unit_of_measure: string;
+  image_url: string | null;
 };
 
 type IngredientSnapshot = {
@@ -24,6 +25,7 @@ type IngredientSnapshot = {
   purchase_unit: string;
   price_per_unit: number;
   price_unit_of_measure: string;
+  image_url: string | null;
 };
 
 type InventoryRowWithIngredient = InventoryItem & {
@@ -59,6 +61,7 @@ export function mapPantryItem(row: InventoryRowWithIngredient): PantryItem {
     purchase_unit: ingredient.purchase_unit,
     price_per_unit: ingredient.price_per_unit,
     price_unit_of_measure: ingredient.price_unit_of_measure,
+    image_url: ingredient.image_url,
   };
 }
 

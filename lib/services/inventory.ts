@@ -16,7 +16,8 @@ const INVENTORY_SELECT = `
     purchase_unit,
     unit_of_measure,
     price_per_unit,
-    price_unit_of_measure
+    price_unit_of_measure,
+    image_url
   )
 `;
 
@@ -43,9 +44,7 @@ export async function fetchInventory(locationId?: string | null): Promise<Pantry
     throw error;
   }
 
-  return (data ?? [])
-    .map((row) => mapPantryItem(row))
-    .sort((a, b) => a.name.localeCompare(b.name));
+  return (data ?? []).map((row) => mapPantryItem(row));
 }
 
 export async function fetchInventoryItem(id: string): Promise<PantryItem | null> {

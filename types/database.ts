@@ -223,6 +223,7 @@ export type Database = {
           expiration_date: string | null;
           location_id: string | null;
           min_threshold: number;
+          shelf_sort_order: number;
         };
         Insert: {
           id?: string;
@@ -232,6 +233,7 @@ export type Database = {
           expiration_date?: string | null;
           location_id?: string | null;
           min_threshold?: number;
+          shelf_sort_order?: number;
         };
         Update: {
           id?: string;
@@ -241,6 +243,7 @@ export type Database = {
           expiration_date?: string | null;
           location_id?: string | null;
           min_threshold?: number;
+          shelf_sort_order?: number;
         };
         Relationships: [
           {

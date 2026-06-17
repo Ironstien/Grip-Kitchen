@@ -1,88 +1,75 @@
-import { Alert, Pressable, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import { FlatList, View } from 'react-native';
 
-import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
-import { Text } from '@/components/ui/Text';
+import { PantryMobileRow, showAddToCartPlaceholder } from '@/components/pantry/PantryMobileRow';
 import { useInventoryMutations } from '@/hooks/useInventory';
-import { formatExpirationDate, getExpiryLabel, getExpiryStatus } from '@/lib/inventory/expiry';
 import { getIngredientDisplayName } from '@/lib/ingredients';
 import type { PantryItem } from '@/lib/inventory/pantry';
-import { formatQuantity } from '@/lib/units';
-import { cn } from '@/lib/cn';
-import type { StorageLocation } from '@/types/database';
+import { pagePaddingClass } from '@/constants/theme';
 
 type PantryMobileListProps = {
   items: PantryItem[];
-  locations: StorageLocation[];
   onAdjustStock: (item: PantryItem) => void;
 };
 
-const expiryRowClasses = {
-  ok: '',
-  expiring: 'border-l-4 border-l-status-warning',
-  expired: 'border-l-4 border-l-status-danger',
-  none: '',
-};
+export function PantryMobileList({ items, onAdjustStock }: PantryMobileListProps) {
+  const { update } = useInventoryMutations();
+  const [checkedIds, setCheckedIds] = useState<Set<string>>(() => new Set());
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-const expiryBadgeStatus = {
-  ok: 'success',
-  expiring: 'warning',
-  expired: 'danger',
-  none: 'neutral',
-} as const;
+  const toggleChecked = useCallback((id: string) => {
+    setCheckedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
 
-export function PantryMobileList({ items, locations, onAdjustStock }: PantryMobileListProps) {
-  const { remove } = useInventoryMutations();
-  const locationMap = new Map(locations.map((location) => [location.id, location.name]));
+  const adjustQuantity = useCallback(
+    async (item: PantryItem, delta: number) => {
+      const nextQuantity = Math.max(0, item.quantity + delta);
+      if (nextQuantity === item.quantity) {
+        return;
+      }
 
-  const handleRemove = (item: PantryItem) => {
-    Alert.alert('Remove from pantry', `Remove ${item.name} from your pantry?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Remove',
-        style: 'destructive',
-        onPress: () => {
-          void remove.mutateAsync(item.id);
-        },
-      },
-    ]);
-  };
+      setUpdatingId(item.id);
+      try {
+        await update.mutateAsync({
+          id: item.id,
+          input: { quantity: nextQuantity },
+        });
+      } finally {
+        setUpdatingId(null);
+      }
+    },
+    [update],
+  );
 
   return (
-    <View className="gap-3">
-      {items.map((item) => {
-        const expiryStatus = getExpiryStatus(item.expiration_date);
-        const locationName = item.location_id
-          ? locationMap.get(item.location_id) ?? 'Unknown'
-          : 'Unassigned';
-
-        return (
-          <Card key={item.id} className={cn('gap-3', expiryRowClasses[expiryStatus])}>
-            <Pressable onPress={() => onAdjustStock(item)} className="gap-2">
-              <View className="flex-row items-start justify-between gap-3">
-                <View className="flex-1">
-                  <Text className="text-lg font-semibold">{getIngredientDisplayName(item)}</Text>
-                  <Text variant="bodySecondary">
-                    {formatQuantity(item.quantity, item.stock_unit)} · {item.category}
-                  </Text>
-                  <Text variant="caption" className="mt-1">
-                    {locationName}
-                    {item.expiration_date
-                      ? ` · Expires ${formatExpirationDate(item.expiration_date)}`
-                      : ''}
-                  </Text>
-                </View>
-                <Badge
-                  label={getExpiryLabel(expiryStatus)}
-                  status={expiryBadgeStatus[expiryStatus]}
-                />
-              </View>
-            </Pressable>
-            <Button label="Remove from pantry" variant="ghost" onPress={() => handleRemove(item)} />
-          </Card>
-        );
-      })}
-    </View>
+    <FlatList
+      data={items}
+      keyExtractor={(item) => item.id}
+      renderItem={({ item }) => (
+        <PantryMobileRow
+          item={item}
+          isChecked={checkedIds.has(item.id)}
+          onToggleChecked={() => toggleChecked(item.id)}
+          onAdjustStock={() => onAdjustStock(item)}
+          onIncrement={() => void adjustQuantity(item, 1)}
+          onDecrement={() => void adjustQuantity(item, -1)}
+          onAddToCart={() => showAddToCartPlaceholder(getIngredientDisplayName(item))}
+          isUpdating={updatingId === item.id}
+        />
+      )}
+      ItemSeparatorComponent={() => <View className="h-3" />}
+      contentContainerClassName={`${pagePaddingClass(false)} pt-3 pb-6`}
+      className="flex-1"
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+    />
   );
 }
