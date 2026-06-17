@@ -115,23 +115,19 @@ export default function PlannerScreen() {
           <WeekPlannerView
             weekStart={weekStart}
             entries={entries}
-            onSlotPress={(plannedDate, mealLabel) => {
-              const entry = entries.find(
-                (item) => item.planned_date === plannedDate && item.meal_label === mealLabel,
-              );
-              openSlot(plannedDate, mealLabel, entry);
-            }}
+            onSlotPress={(plannedDate, mealLabel) => openSlot(plannedDate, mealLabel)}
+            onSlotEdit={(plannedDate, mealLabel, entry) =>
+              openSlot(plannedDate, mealLabel, entry)
+            }
           />
         ) : viewMode === 'month' ? (
           <MonthPlannerView
             monthAnchor={monthAnchor}
             entries={entries}
-            onSlotPress={(plannedDate, mealLabel) => {
-              const entry = entries.find(
-                (item) => item.planned_date === plannedDate && item.meal_label === mealLabel,
-              );
-              openSlot(plannedDate, mealLabel, entry);
-            }}
+            onSlotPress={(plannedDate, mealLabel) => openSlot(plannedDate, mealLabel)}
+            onSlotEdit={(plannedDate, mealLabel, entry) =>
+              openSlot(plannedDate, mealLabel, entry)
+            }
           />
         ) : (
           <AgendaPlannerView

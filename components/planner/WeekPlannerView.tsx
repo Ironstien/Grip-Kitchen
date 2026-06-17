@@ -11,9 +11,10 @@ type WeekPlannerViewProps = {
   weekStart: Date;
   entries: MealPlanEntryWithRecipe[];
   onSlotPress: (plannedDate: string, mealLabel: (typeof MEAL_SLOTS)[number]) => void;
+  onSlotEdit: (plannedDate: string, mealLabel: (typeof MEAL_SLOTS)[number], entry: MealPlanEntryWithRecipe) => void;
 };
 
-export function WeekPlannerView({ weekStart, entries, onSlotPress }: WeekPlannerViewProps) {
+export function WeekPlannerView({ weekStart, entries, onSlotPress, onSlotEdit }: WeekPlannerViewProps) {
   const lookup = buildMealPlanLookup(entries);
   const weekDates = getWeekDates(weekStart);
 
@@ -27,14 +28,22 @@ export function WeekPlannerView({ weekStart, entries, onSlotPress }: WeekPlanner
               {formatDayLabel(date)} {date.getDate()}
             </Text>
             <View className="gap-2">
-              {MEAL_SLOTS.map((mealLabel) => (
-                <MealSlotCard
-                  key={`${dateKey}:${mealLabel}`}
-                  mealLabel={mealLabel}
-                  entry={lookup.get(`${dateKey}:${mealLabel}`)}
-                  onPress={() => onSlotPress(dateKey, mealLabel)}
-                />
-              ))}
+              {MEAL_SLOTS.map((mealLabel) => {
+                const entry = lookup.get(`${dateKey}:${mealLabel}`);
+                return (
+                  <MealSlotCard
+                    key={`${dateKey}:${mealLabel}`}
+                    mealLabel={mealLabel}
+                    entry={entry}
+                    onPress={() => onSlotPress(dateKey, mealLabel)}
+                    onEdit={
+                      entry
+                        ? () => onSlotEdit(dateKey, mealLabel, entry)
+                        : undefined
+                    }
+                  />
+                );
+              })}
             </View>
           </View>
         );

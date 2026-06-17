@@ -137,6 +137,10 @@ export function getRecipeTitle(entry: MealPlanEntryWithRecipe | undefined): stri
   return entry?.recipe?.title ?? null;
 }
 
+export function getRecipeHeroImage(entry: MealPlanEntryWithRecipe | undefined): string | null {
+  return entry?.recipe?.hero_image_url ?? null;
+}
+
 export type { Recipe };
 
 export { toDateKey };

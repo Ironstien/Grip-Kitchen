@@ -18,9 +18,15 @@ type MonthPlannerViewProps = {
   monthAnchor: Date;
   entries: MealPlanEntryWithRecipe[];
   onSlotPress: (plannedDate: string, mealLabel: (typeof MEAL_SLOTS)[number]) => void;
+  onSlotEdit: (plannedDate: string, mealLabel: (typeof MEAL_SLOTS)[number], entry: MealPlanEntryWithRecipe) => void;
 };
 
-export function MonthPlannerView({ monthAnchor, entries, onSlotPress }: MonthPlannerViewProps) {
+export function MonthPlannerView({
+  monthAnchor,
+  entries,
+  onSlotPress,
+  onSlotEdit,
+}: MonthPlannerViewProps) {
   const [selectedDateKey, setSelectedDateKey] = useState(() => toDateKey(new Date()));
   const lookup = buildMealPlanLookup(entries);
   const gridDates = getMonthGridDates(monthAnchor);
@@ -84,15 +90,21 @@ export function MonthPlannerView({ monthAnchor, entries, onSlotPress }: MonthPla
           {formatDayShort(new Date(selectedDateKey + 'T12:00:00'))}
         </Text>
         <View className="gap-2">
-          {MEAL_SLOTS.map((mealLabel) => (
-            <MealSlotCard
-              key={`${selectedDateKey}:${mealLabel}`}
-              mealLabel={mealLabel}
-              entry={lookup.get(`${selectedDateKey}:${mealLabel}`)}
-              compact
-              onPress={() => onSlotPress(selectedDateKey, mealLabel)}
-            />
-          ))}
+          {MEAL_SLOTS.map((mealLabel) => {
+            const entry = lookup.get(`${selectedDateKey}:${mealLabel}`);
+            return (
+              <MealSlotCard
+                key={`${selectedDateKey}:${mealLabel}`}
+                mealLabel={mealLabel}
+                entry={entry}
+                compact
+                onPress={() => onSlotPress(selectedDateKey, mealLabel)}
+                onEdit={
+                  entry ? () => onSlotEdit(selectedDateKey, mealLabel, entry) : undefined
+                }
+              />
+            );
+          })}
         </View>
       </View>
     </View>
