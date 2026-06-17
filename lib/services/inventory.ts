@@ -120,4 +120,15 @@ export async function deleteInventoryItems(ids: string[]): Promise<void> {
   }
 }
 
+export async function deleteInventoryByIngredientId(ingredientId: string): Promise<void> {
+  const { error } = await supabase
+    .from(tables.inventory)
+    .delete()
+    .eq('ingredient_id', ingredientId);
+
+  if (error) {
+    throw error;
+  }
+}
+
 export type { InventoryItem };

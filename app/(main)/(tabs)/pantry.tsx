@@ -92,11 +92,7 @@ export default function PantryScreen() {
           />
         </View>
       ) : (
-        <PantryMobileList
-          key={selectedLocationId ?? 'all'}
-          items={filteredItems}
-          onAdjustStock={(item) => router.push(`/(main)/inventory/${item.id}` as Href)}
-        />
+        <PantryMobileList key={selectedLocationId ?? 'all'} items={filteredItems} />
       )}
     </View>
   );

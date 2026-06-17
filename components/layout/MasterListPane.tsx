@@ -63,6 +63,7 @@ type MasterListRowProps = {
   trailing?: string;
   imageUrl?: string | null;
   showThumbnail?: boolean;
+  accessory?: ReactNode;
   selected?: boolean;
   onPress: () => void;
 };
@@ -75,6 +76,7 @@ export function MasterListRow({
   trailing,
   imageUrl,
   showThumbnail = false,
+  accessory,
   selected = false,
   onPress,
 }: MasterListRowProps) {
@@ -121,6 +123,7 @@ export function MasterListRow({
           ) : null}
         </View>
 
+        {accessory}
         {showThumbnail ? <IngredientThumbnail uri={imageUrl} size={40} /> : null}
       </View>
     </Pressable>

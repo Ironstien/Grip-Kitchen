@@ -1,4 +1,4 @@
-import { Alert, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Button } from '@/components/ui/Button';
@@ -126,13 +126,5 @@ export function PantryMobileRow({
         />
       </View>
     </Card>
-  );
-}
-
-export function showAddToCartPlaceholder(itemName: string) {
-  Alert.alert(
-    'Add to cart',
-    `${itemName} will be added to your Shop list once that feature is ready.`,
-    [{ text: 'OK' }],
   );
 }

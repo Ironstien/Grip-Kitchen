@@ -8,6 +8,7 @@ import {
   MasterListRow,
 } from '@/components/layout/MasterListPane';
 import { Input } from '@/components/ui/Input';
+import { IngredientPantryToggle } from '@/components/ingredients/IngredientPantryToggle';
 import { useIngredients } from '@/hooks/useIngredients';
 import { getIngredientDisplayName } from '@/lib/ingredients';
 
@@ -78,6 +79,7 @@ export function IngredientMasterList() {
               meta={ingredient.category}
               imageUrl={ingredient.image_url}
               showThumbnail
+              accessory={<IngredientPantryToggle ingredientId={ingredient.id} />}
               selected={selectedId === ingredient.id}
               onPress={() => router.push(`/(main)/ingredients/${ingredient.id}` as Href)}
             />

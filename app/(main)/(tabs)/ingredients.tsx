@@ -10,6 +10,7 @@ import { pageHeaderMarginClass, pagePaddingClass } from '@/constants/theme';
 import { useIngredients } from '@/hooks/useIngredients';
 import { useResponsive } from '@/hooks/useResponsive';
 import { formatPurchaseSummary, getIngredientDisplayName } from '@/lib/ingredients';
+import { IngredientPantryToggle } from '@/components/ingredients/IngredientPantryToggle';
 import { MasterListRow } from '@/components/layout/MasterListPane';
 
 export default function IngredientsScreen() {
@@ -77,6 +78,7 @@ export default function IngredientsScreen() {
               meta={`${ingredient.category} · ${formatPurchaseSummary(ingredient)}`}
               imageUrl={ingredient.image_url}
               showThumbnail
+              accessory={<IngredientPantryToggle ingredientId={ingredient.id} />}
               onPress={() => router.push(`/(main)/ingredients/${ingredient.id}` as Href)}
             />
           ))}

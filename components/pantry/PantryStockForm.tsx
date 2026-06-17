@@ -17,6 +17,7 @@ type PantryStockFormProps = {
   onSaved: () => void;
   onCancel: () => void;
   dense?: boolean;
+  inSheet?: boolean;
 };
 
 function parseDate(value: string | null | undefined): Date | null {
@@ -39,7 +40,13 @@ function formatDateInput(date: Date | null): string | null {
   return `${year}-${month}-${day}`;
 }
 
-export function PantryStockForm({ item, onSaved, onCancel, dense = false }: PantryStockFormProps) {
+export function PantryStockForm({
+  item,
+  onSaved,
+  onCancel,
+  dense = false,
+  inSheet = false,
+}: PantryStockFormProps) {
   const { data: ingredients = [] } = useIngredients();
   const { data: locations = [] } = useStorageLocations();
   const { create, update, remove } = useInventoryMutations();
@@ -158,10 +165,16 @@ export function PantryStockForm({ item, onSaved, onCancel, dense = false }: Pant
 
   return (
     <ScrollView
-      className="flex-1"
+      className={inSheet ? undefined : 'flex-1'}
       contentContainerClassName={dense ? 'gap-4 pb-8' : 'gap-5 pb-10'}
-      keyboardShouldPersistTaps="handled">
-      {item ? (
+      keyboardShouldPersistTaps="handled"
+      nestedScrollEnabled={inSheet}>
+      {item && inSheet ? (
+        <Text variant="caption">
+          {item.category} · {item.stock_unit} · Edit product details in Ingredients.
+        </Text>
+      ) : null}
+      {item && !inSheet ? (
         <View className="rounded-card border border-border px-4 py-3 dark:border-border-dark">
           <Text className="text-lg font-semibold">{getIngredientDisplayName(item)}</Text>
           <Text variant="bodySecondary">{item.name}</Text>
@@ -172,7 +185,7 @@ export function PantryStockForm({ item, onSaved, onCancel, dense = false }: Pant
             Edit ingredient details in Ingredients.
           </Text>
         </View>
-      ) : (
+      ) : item ? null : (
         <OptionSelect
           label="Ingredient"
           value={ingredientOptions.find((entry) => entry.id === ingredientId)?.name ?? ''}

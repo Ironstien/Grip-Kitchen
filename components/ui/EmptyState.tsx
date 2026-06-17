@@ -7,7 +7,7 @@ import { cn } from '@/lib/cn';
 type EmptyStateProps = {
   title: string;
   description: string;
-  actionLabel: string;
+  actionLabel?: string;
   onAction?: () => void;
   className?: string;
 };
@@ -27,7 +27,9 @@ export function EmptyState({
       <Text variant="bodySecondary" className="mb-4 max-w-sm text-center">
         {description}
       </Text>
-      <Button label={actionLabel} onPress={onAction} className="min-w-[140px]" />
+      {actionLabel ? (
+        <Button label={actionLabel} onPress={onAction} className="min-w-[140px]" />
+      ) : null}
     </View>
   );
 }
