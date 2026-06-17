@@ -1,11 +1,14 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Alert, Pressable, SectionList, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { IngredientThumbnail } from '@/components/ui/IngredientThumbnail';
+import { IconButton } from '@/components/ui/IconButton';
 import { Text } from '@/components/ui/Text';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useShoppingListMutations } from '@/hooks/useShoppingList';
+import { useResponsive } from '@/hooks/useResponsive';
+import { copyTextToClipboard } from '@/lib/clipboardText';
 import { getIngredientDisplayName } from '@/lib/ingredients';
 import type { ShoppingListEntry } from '@/lib/services/shoppingList';
 import { formatQuantity } from '@/lib/units';
@@ -48,14 +51,35 @@ function groupByCategory(items: ShoppingListEntry[]): ShopSection[] {
 
 function ShopListRow({
   item,
+  isDesktop,
   onTogglePurchased,
   onRemove,
 }: {
   item: ShoppingListEntry;
+  isDesktop?: boolean;
   onTogglePurchased: () => void;
   onRemove: () => void;
 }) {
   const { palette } = useTheme();
+  const [copied, setCopied] = useState(false);
+  const storeName = item.name.trim();
+  const displayName = getIngredientDisplayName(item);
+
+  const handleCopyStoreName = async () => {
+    if (!storeName) {
+      Alert.alert('No store name', 'This item does not have a store product name set.');
+      return;
+    }
+
+    const ok = await copyTextToClipboard(storeName);
+    if (!ok) {
+      Alert.alert('Copy failed', 'Could not copy the store name to your clipboard.');
+      return;
+    }
+
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <View
@@ -80,12 +104,26 @@ function ShopListRow({
 
       <View className="min-w-0 flex-1">
         <Text className={cn('text-base font-semibold', item.is_purchased && 'line-through')}>
-          {getIngredientDisplayName(item)}
+          {displayName}
         </Text>
+        {isDesktop && storeName && storeName !== displayName ? (
+          <Text variant="caption" numberOfLines={1}>
+            Store: {storeName}
+          </Text>
+        ) : null}
         <Text variant="bodySecondary">
           Buy {formatQuantity(item.target_quantity, item.stock_unit)}
         </Text>
       </View>
+
+      {isDesktop ? (
+        <IconButton
+          accessibilityLabel={copied ? 'Store name copied' : 'Copy store name'}
+          name={copied ? 'checkmark-outline' : 'copy-outline'}
+          iconColor={copied ? palette.statusSuccess : palette.textSecondary}
+          onPress={() => void handleCopyStoreName()}
+        />
+      ) : null}
 
       <Pressable
         accessibilityRole="button"
@@ -99,6 +137,7 @@ function ShopListRow({
 }
 
 export function ShopMobileList({ items, listId }: ShopMobileListProps) {
+  const { isDesktop } = useResponsive();
   const { update, remove } = useShoppingListMutations(listId);
 
   const sections = useMemo(() => groupByCategory(items), [items]);
@@ -128,6 +167,7 @@ export function ShopMobileList({ items, listId }: ShopMobileListProps) {
       renderItem={({ item }) => (
         <ShopListRow
           item={item}
+          isDesktop={isDesktop}
           onTogglePurchased={() => {
             void update.mutateAsync({
               id: item.id,
@@ -138,7 +178,7 @@ export function ShopMobileList({ items, listId }: ShopMobileListProps) {
         />
       )}
       stickySectionHeadersEnabled
-      contentContainerClassName={`${pagePaddingClass(false)} pb-8`}
+      contentContainerClassName={`${pagePaddingClass(isDesktop)} pb-8`}
       className="flex-1"
       showsVerticalScrollIndicator={false}
     />
