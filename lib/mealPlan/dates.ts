@@ -77,6 +77,44 @@ export function getMonthDates(monthAnchor: Date): Date[] {
   return Array.from({ length: lastDay }, (_, index) => new Date(year, month, index + 1));
 }
 
+/** Monday-start weeks covering the month (includes leading/trailing days). */
+export function getMonthWeekRows(monthAnchor: Date): Date[][] {
+  const gridDates = getMonthGridDates(monthAnchor);
+  const weeks: Date[][] = [];
+
+  for (let index = 0; index < gridDates.length; index += 7) {
+    weeks.push(gridDates.slice(index, index + 7));
+  }
+
+  return weeks;
+}
+
+export function isDateInMonth(date: Date, monthAnchor: Date): boolean {
+  return date.getFullYear() === monthAnchor.getFullYear() && date.getMonth() === monthAnchor.getMonth();
+}
+
+export const MONTH_CALENDAR_WEEKS_VISIBLE = 4;
+
+export function getVisibleMonthWeekPageCount(totalWeeks: number): number {
+  return Math.max(1, Math.ceil(totalWeeks / MONTH_CALENDAR_WEEKS_VISIBLE));
+}
+
+export function getInitialMonthWeekPage(monthAnchor: Date, totalWeeks: number): number {
+  const today = new Date();
+  if (!isDateInMonth(today, monthAnchor)) {
+    return 0;
+  }
+
+  const weeks = getMonthWeekRows(monthAnchor);
+  const weekIndex = weeks.findIndex((week) => week.some((date) => toDateKey(date) === toDateKey(today)));
+
+  if (weekIndex < 0) {
+    return 0;
+  }
+
+  return Math.floor(weekIndex / MONTH_CALENDAR_WEEKS_VISIBLE);
+}
+
 export function defaultShoppingListName(date = new Date()): string {
   return toDateKey(date);
 }
