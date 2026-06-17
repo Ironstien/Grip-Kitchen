@@ -33,18 +33,33 @@ export function MealSlotSheet({
 }: MealSlotSheetProps) {
   const [search, setSearch] = useState('');
   const [selectedRecipeId, setSelectedRecipeId] = useState<string | null>(entry?.recipe_id ?? null);
-  const [servings, setServings] = useState(String(entry?.target_servings ?? 2));
+  const [servings, setServings] = useState(() =>
+    entry?.target_servings != null ? String(entry.target_servings) : '',
+  );
 
   const { data: recipes = [], isLoading } = useRecipes({ search });
   const { upsert, clearSlot } = useMealPlanMutations(weekStartKey, weekEndKey);
 
+  const selectedRecipe = useMemo(
+    () => recipes.find((recipe) => recipe.id === selectedRecipeId) ?? null,
+    [recipes, selectedRecipeId],
+  );
+
   useEffect(() => {
     if (visible) {
       setSelectedRecipeId(entry?.recipe_id ?? null);
-      setServings(String(entry?.target_servings ?? 2));
+      setServings(entry?.target_servings != null ? String(entry.target_servings) : '');
       setSearch('');
     }
   }, [visible, entry?.recipe_id, entry?.target_servings]);
+
+  const handleSelectRecipe = (recipeId: string) => {
+    setSelectedRecipeId(recipeId);
+    const recipe = recipes.find((item) => item.id === recipeId);
+    if (recipe) {
+      setServings(String(recipe.base_serving_size));
+    }
+  };
 
   const dateLabel = useMemo(() => formatDayShort(new Date(plannedDate + 'T12:00:00')), [plannedDate]);
 
@@ -96,7 +111,9 @@ export function MealSlotSheet({
             value={servings}
             onChangeText={setServings}
             keyboardType="decimal-pad"
-            placeholder="2"
+            placeholder={
+              selectedRecipe ? String(selectedRecipe.base_serving_size) : 'Select a recipe'
+            }
           />
         </View>
 
@@ -120,7 +137,7 @@ export function MealSlotSheet({
                 <Pressable
                   accessibilityRole="button"
                   accessibilityState={{ selected }}
-                  onPress={() => setSelectedRecipeId(item.id)}
+                  onPress={() => handleSelectRecipe(item.id)}
                   className={cn(
                     'mb-1 rounded-button border px-3 py-2.5',
                     selected

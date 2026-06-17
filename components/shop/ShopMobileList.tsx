@@ -3,7 +3,7 @@ import { Alert, Pressable, SectionList, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { IngredientThumbnail } from '@/components/ui/IngredientThumbnail';
-import { IconButton } from '@/components/ui/IconButton';
+import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useShoppingListMutations } from '@/hooks/useShoppingList';
@@ -117,11 +117,11 @@ function ShopListRow({
       </View>
 
       {isDesktop ? (
-        <IconButton
-          accessibilityLabel={copied ? 'Store name copied' : 'Copy store name'}
-          name={copied ? 'checkmark-outline' : 'copy-outline'}
-          iconColor={copied ? palette.statusSuccess : palette.textSecondary}
+        <Button
+          label={copied ? 'Copied' : 'Copy store name'}
+          variant="ghost"
           onPress={() => void handleCopyStoreName()}
+          className="shrink-0"
         />
       ) : null}
 
