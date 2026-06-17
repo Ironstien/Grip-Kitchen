@@ -19,6 +19,7 @@ type ShopSection = {
 
 type ShopMobileListProps = {
   items: ShoppingListEntry[];
+  listId?: string;
 };
 
 function groupByCategory(items: ShoppingListEntry[]): ShopSection[] {
@@ -97,8 +98,8 @@ function ShopListRow({
   );
 }
 
-export function ShopMobileList({ items }: ShopMobileListProps) {
-  const { update, remove } = useShoppingListMutations();
+export function ShopMobileList({ items, listId }: ShopMobileListProps) {
+  const { update, remove } = useShoppingListMutations(listId);
 
   const sections = useMemo(() => groupByCategory(items), [items]);
 

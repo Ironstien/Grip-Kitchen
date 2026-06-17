@@ -6,7 +6,9 @@ export const queryKeys = {
   storageLocations: ['storageLocations'] as const,
   inventory: (locationId?: string | null) => ['inventory', locationId ?? 'all'] as const,
   inventoryItem: (id: string) => ['inventory', 'item', id] as const,
-  shoppingList: ['shoppingList'] as const,
+  shoppingLists: (status?: 'active' | 'archived') => ['shoppingLists', status ?? 'all'] as const,
+  shoppingList: (listId: string) => ['shoppingList', listId] as const,
+  mealPlan: (start: string, end: string) => ['mealPlan', start, end] as const,
   recipes: (filters?: Record<string, unknown>) => ['recipes', filters ?? {}] as const,
   recipe: (id: string) => ['recipes', id] as const,
 };

@@ -4,7 +4,7 @@ import { Alert } from 'react-native';
 import { useShoppingListMutations } from '@/hooks/useShoppingList';
 import { getIngredientDisplayName } from '@/lib/ingredients';
 import type { PantryItem } from '@/lib/inventory/pantry';
-import { findActiveShoppingListEntry } from '@/lib/services/shoppingList';
+import { findActiveShoppingListEntry, getOrCreateDefaultShoppingList } from '@/lib/services/shoppingList';
 import { suggestBuyQuantity } from '@/lib/shopping/addToCart';
 import { formatQuantity } from '@/lib/units';
 
@@ -13,13 +13,15 @@ export function useAddToCart() {
 
   return useCallback(
     async (item: PantryItem) => {
+      const list = await getOrCreateDefaultShoppingList();
       const buyQuantity = suggestBuyQuantity(item);
       const label = getIngredientDisplayName(item);
       const quantityLabel = formatQuantity(buyQuantity, item.stock_unit);
-      const existing = await findActiveShoppingListEntry(item.id);
+      const existing = await findActiveShoppingListEntry(list.id, item.id);
 
       if (!existing) {
         await create.mutateAsync({
+          shopping_list_id: list.id,
           inventory_item_id: item.id,
           target_quantity: buyQuantity,
         });
@@ -39,6 +41,7 @@ export function useAddToCart() {
             onPress: () => {
               void create
                 .mutateAsync({
+                  shopping_list_id: list.id,
                   inventory_item_id: item.id,
                   target_quantity: buyQuantity,
                 })

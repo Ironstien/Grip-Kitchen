@@ -394,10 +394,49 @@ export type Database = {
           },
         ];
       };
+      shopping_lists: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          status: 'active' | 'archived';
+          meal_plan_week_start: string | null;
+          created_at: string;
+          archived_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          status?: 'active' | 'archived';
+          meal_plan_week_start?: string | null;
+          created_at?: string;
+          archived_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          status?: 'active' | 'archived';
+          meal_plan_week_start?: string | null;
+          created_at?: string;
+          archived_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'shopping_lists_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       shopping_list: {
         Row: {
           id: string;
           user_id: string;
+          shopping_list_id: string | null;
           inventory_item_id: string | null;
           target_quantity: number;
           is_purchased: boolean;
@@ -405,6 +444,7 @@ export type Database = {
         Insert: {
           id?: string;
           user_id: string;
+          shopping_list_id?: string | null;
           inventory_item_id?: string | null;
           target_quantity: number;
           is_purchased?: boolean;
@@ -412,6 +452,7 @@ export type Database = {
         Update: {
           id?: string;
           user_id?: string;
+          shopping_list_id?: string | null;
           inventory_item_id?: string | null;
           target_quantity?: number;
           is_purchased?: boolean;
@@ -422,6 +463,13 @@ export type Database = {
             columns: ['user_id'];
             isOneToOne: false;
             referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'shopping_list_shopping_list_id_fkey';
+            columns: ['shopping_list_id'];
+            isOneToOne: false;
+            referencedRelation: 'shopping_lists';
             referencedColumns: ['id'];
           },
           {
@@ -545,6 +593,7 @@ export type InventoryItem = Tables<'inventory'>;
 export type Recipe = Tables<'recipes'>;
 export type RecipeIngredient = Tables<'recipe_ingredients'>;
 export type MealPlanEntry = Tables<'meal_plan'>;
+export type ShoppingListSession = Tables<'shopping_lists'>;
 export type ShoppingListItem = Tables<'shopping_list'>;
 export type WasteLogEntry = Tables<'waste_log'>;
 export type BarcodeCacheEntry = Tables<'barcode_cache'>;
