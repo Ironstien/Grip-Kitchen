@@ -108,7 +108,7 @@ export default function PlannerScreen() {
         <PlannerViewTabs value={viewMode} onChange={setViewMode} />
       </View>
 
-      <View className={`flex-1 ${paddingClass} pt-3`}>
+      <View className={`min-h-0 flex-1 ${paddingClass} pt-3`}>
         {isLoading ? (
           <ActivityIndicator className="mt-8" />
         ) : viewMode === 'week' ? (

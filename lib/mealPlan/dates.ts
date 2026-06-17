@@ -69,6 +69,14 @@ export function getMonthGridDates(monthAnchor: Date): Date[] {
   return days;
 }
 
+/** All calendar days in the given month (1st through last day). */
+export function getMonthDates(monthAnchor: Date): Date[] {
+  const year = monthAnchor.getFullYear();
+  const month = monthAnchor.getMonth();
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  return Array.from({ length: lastDay }, (_, index) => new Date(year, month, index + 1));
+}
+
 export function defaultShoppingListName(date = new Date()): string {
   return toDateKey(date);
 }
