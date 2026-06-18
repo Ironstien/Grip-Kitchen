@@ -1,4 +1,3 @@
-import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
@@ -11,11 +10,13 @@ import {
 import { DietaryTagsEditor } from '@/components/recipes/DietaryTagsEditor';
 import { RecipeIngredientList } from '@/components/recipes/RecipeIngredientList';
 import { AutocompleteInput } from '@/components/ui/AutocompleteInput';
+import { ClipboardImagePicker } from '@/components/ui/ClipboardImagePicker';
 import { FormField } from '@/components/ui/Form';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Text } from '@/components/ui/Text';
+import { isLocalImageUri, revokeLocalImageUri } from '@/lib/clipboardImage';
 import { useIngredients } from '@/hooks/useIngredients';
 import { useResponsive } from '@/hooks/useResponsive';
 import { useRecipeMutations, useRecipeScaling } from '@/hooks/useRecipes';
@@ -57,6 +58,7 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
     recipe?.time_to_cook != null ? String(recipe.time_to_cook) : '',
   );
   const [heroImageUrl, setHeroImageUrl] = useState(recipe?.hero_image_url ?? '');
+  const [heroImageMimeType, setHeroImageMimeType] = useState<string | undefined>();
   const [selectedTags, setSelectedTags] = useState<string[]>(recipe?.dietary_tags ?? []);
   const [ingredients, setIngredients] = useState<DraftIngredient[]>(
     recipe?.recipe_ingredients.map((ingredient) => ({
@@ -222,21 +224,22 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
     setIngredients((current) => current.filter((_, entryIndex) => entryIndex !== index));
   };
 
-  const pickImage = async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert('Permission needed', 'Allow photo library access to upload a hero image.');
-      return;
-    }
+  const setHeroImageFromPicker = (uri: string, mimeType?: string) => {
+    revokeLocalImageUri(heroImageUrl);
+    setHeroImageUrl(uri);
+    setHeroImageMimeType(mimeType);
+  };
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      quality: 0.85,
-    });
+  const clearHeroImage = () => {
+    revokeLocalImageUri(heroImageUrl);
+    setHeroImageUrl('');
+    setHeroImageMimeType(undefined);
+  };
 
-    if (!result.canceled && result.assets[0]?.uri) {
-      setHeroImageUrl(result.assets[0].uri);
-    }
+  const setHeroImageFromUrl = (url: string) => {
+    revokeLocalImageUri(heroImageUrl);
+    setHeroImageUrl(url);
+    setHeroImageMimeType(undefined);
   };
 
   const validate = (): Array<{
@@ -300,7 +303,8 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
       base_serving_size: Number(baseServings),
       time_to_cook: timeToCook.trim() ? Number(timeToCook) : null,
       dietary_tags: selectedTags,
-      hero_image_url: heroImageUrl.startsWith('http') ? heroImageUrl : recipe?.hero_image_url ?? null,
+      hero_image_url:
+        heroImageUrl && !isLocalImageUri(heroImageUrl) ? heroImageUrl : recipe?.hero_image_url ?? null,
       ingredients: parsedIngredients,
     };
 
@@ -316,16 +320,17 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
         savedRecipeId = saved.id;
       }
 
-      if (heroImageUrl && !heroImageUrl.startsWith('http')) {
+      if (heroImageUrl && isLocalImageUri(heroImageUrl)) {
         const publicUrl = await uploadHeroImage.mutateAsync({
           recipeId: savedRecipeId,
           uri: heroImageUrl,
+          mimeType: heroImageMimeType,
         });
         await update.mutateAsync({
           id: savedRecipeId,
           input: { hero_image_url: publicUrl },
         });
-      } else if (heroImageUrl.startsWith('http')) {
+      } else if (heroImageUrl && !isLocalImageUri(heroImageUrl)) {
         await update.mutateAsync({
           id: savedRecipeId,
           input: { hero_image_url: heroImageUrl },
@@ -359,39 +364,39 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
     );
 
   const heroPhotoControls = (
-    <>
-      <Button
-        label="Upload photo"
-        variant="secondary"
-        onPress={() => void pickImage()}
-        className="self-start"
+    <View className="flex-row items-end gap-3">
+      <ClipboardImagePicker
+        compact
+        size={72}
+        label=""
+        value={heroImageUrl || null}
+        onChange={setHeroImageFromPicker}
+        onClear={clearHeroImage}
       />
       <Input
+        className="min-w-0 flex-1"
         value={heroImageUrl.startsWith('http') ? heroImageUrl : ''}
-        onChangeText={setHeroImageUrl}
+        onChangeText={setHeroImageFromUrl}
         placeholder="Paste image URL"
       />
-    </>
+    </View>
   );
 
   const heroPhotoField = (
     <FormField label="Hero photo">
-      {heroImageUrl ? (
-        <Image
-          source={{ uri: heroImageUrl }}
-          style={{ width: '100%', height: 220, borderRadius: 10 }}
-          contentFit="cover"
-        />
-      ) : (
-        <View
-          className={cn(
-            'h-[220px] items-center justify-center border border-dashed border-field-border',
-            fieldPanelClassName,
-          )}>
-          <Text variant="bodySecondary">Photo required for recipe cards</Text>
-        </View>
-      )}
-      <View className="mt-3 gap-3">{heroPhotoControls}</View>
+      <ClipboardImagePicker
+        value={heroImageUrl || null}
+        height={220}
+        label=""
+        onChange={setHeroImageFromPicker}
+        onClear={clearHeroImage}
+      />
+      <Input
+        className="mt-3"
+        value={heroImageUrl.startsWith('http') ? heroImageUrl : ''}
+        onChangeText={setHeroImageFromUrl}
+        placeholder="Paste image URL"
+      />
     </FormField>
   );
 
