@@ -30,6 +30,7 @@ export default function EditRecipeScreen() {
             recipe={recipe}
             onSaved={(recipeId) => router.replace(`/(main)/recipes/${recipeId}` as Href)}
             onCancel={() => router.back()}
+            onDeleted={() => router.replace('/(main)/recipes' as Href)}
           />
         </View>
       )}

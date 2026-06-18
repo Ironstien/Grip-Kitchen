@@ -14,6 +14,7 @@ type ClipboardImagePickerProps = {
   onChange: (uri: string, mimeType?: string) => void;
   onClear?: () => void;
   label?: string;
+  emptyLabel?: string;
   height?: number;
   size?: number;
   compact?: boolean;
@@ -25,6 +26,7 @@ export function ClipboardImagePicker({
   onChange,
   onClear,
   label = 'Photo',
+  emptyLabel,
   height = 180,
   size,
   compact = false,
@@ -70,9 +72,10 @@ export function ClipboardImagePicker({
   };
 
   const placeholderText =
-    Platform.OS === 'web'
+    emptyLabel ??
+    (Platform.OS === 'web'
       ? 'Click to paste image from clipboard'
-      : 'Tap to choose a photo';
+      : 'Tap to choose a photo');
 
   return (
     <View className={className}>

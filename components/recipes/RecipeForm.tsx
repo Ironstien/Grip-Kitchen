@@ -1,4 +1,3 @@
-import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, View } from 'react-native';
@@ -44,12 +43,13 @@ type RecipeFormProps = {
   recipe?: RecipeWithIngredients | null;
   onSaved: (recipeId: string) => void;
   onCancel: () => void;
+  onDeleted?: () => void;
 };
 
-export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
+export function RecipeForm({ recipe, onSaved, onCancel, onDeleted }: RecipeFormProps) {
   const { isDesktop } = useResponsive();
   const { data: ingredientsCatalog = [] } = useIngredients();
-  const { create, update, uploadHeroImage } = useRecipeMutations();
+  const { create, update, remove, uploadHeroImage } = useRecipeMutations();
 
   const [title, setTitle] = useState(recipe?.title ?? '');
   const [instructions, setInstructions] = useState(recipe?.instructions ?? '');
@@ -291,6 +291,27 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
     return parsedIngredients;
   };
 
+  const handleDelete = () => {
+    if (!recipe) {
+      return;
+    }
+
+    Alert.alert(
+      'Delete recipe',
+      `Delete "${recipe.title}"? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            void remove.mutateAsync(recipe.id).then(() => (onDeleted ?? onCancel)());
+          },
+        },
+      ],
+    );
+  };
+
   const handleSave = async () => {
     const parsedIngredients = validate();
     if (!parsedIngredients) {
@@ -346,40 +367,23 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
     }
   };
 
-  const heroImagePreview =
-    heroImageUrl ? (
-      <Image
-        source={{ uri: heroImageUrl }}
-        style={{ width: '100%', height: RECIPE_DESKTOP_HERO_HEIGHT }}
-        contentFit="cover"
-      />
-    ) : (
-      <View
-        className={cn(
-          'h-full items-center justify-center border border-dashed border-field-border',
-          fieldPanelClassName,
-        )}>
-        <Text variant="bodySecondary">Photo required for recipe cards</Text>
-      </View>
-    );
+  const heroImagePreview = (
+    <ClipboardImagePicker
+      value={heroImageUrl || null}
+      height={RECIPE_DESKTOP_HERO_HEIGHT}
+      label=""
+      emptyLabel="Photo required for recipe cards — click to paste"
+      onChange={setHeroImageFromPicker}
+      onClear={clearHeroImage}
+    />
+  );
 
   const heroPhotoControls = (
-    <View className="flex-row items-end gap-3">
-      <ClipboardImagePicker
-        compact
-        size={72}
-        label=""
-        value={heroImageUrl || null}
-        onChange={setHeroImageFromPicker}
-        onClear={clearHeroImage}
-      />
-      <Input
-        className="min-w-0 flex-1"
-        value={heroImageUrl.startsWith('http') ? heroImageUrl : ''}
-        onChangeText={setHeroImageFromUrl}
-        placeholder="Paste image URL"
-      />
-    </View>
+    <Input
+      value={heroImageUrl.startsWith('http') ? heroImageUrl : ''}
+      onChangeText={setHeroImageFromUrl}
+      placeholder="Or paste an image URL"
+    />
   );
 
   const heroPhotoField = (
@@ -388,6 +392,7 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
         value={heroImageUrl || null}
         height={220}
         label=""
+        emptyLabel="Photo required for recipe cards — click to paste"
         onChange={setHeroImageFromPicker}
         onClear={clearHeroImage}
       />
@@ -395,7 +400,7 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
         className="mt-3"
         value={heroImageUrl.startsWith('http') ? heroImageUrl : ''}
         onChangeText={setHeroImageFromUrl}
-        placeholder="Paste image URL"
+        placeholder="Or paste an image URL"
       />
     </FormField>
   );
@@ -537,14 +542,19 @@ export function RecipeForm({ recipe, onSaved, onCancel }: RecipeFormProps) {
   );
 
   const actionButtons = (
-    <View className="flex-row gap-3">
-      <Button label="Cancel" variant="ghost" onPress={onCancel} className="flex-1" />
-      <Button
-        label={isSaving ? 'Saving...' : recipe ? 'Save recipe' : 'Create recipe'}
-        onPress={() => void handleSave()}
-        disabled={isSaving}
-        className="flex-1"
-      />
+    <View className="gap-3">
+      {recipe ? (
+        <Button label="Delete recipe" variant="ghost" onPress={handleDelete} />
+      ) : null}
+      <View className="flex-row gap-3">
+        <Button label="Cancel" variant="ghost" onPress={onCancel} className="flex-1" />
+        <Button
+          label={isSaving ? 'Saving...' : recipe ? 'Save recipe' : 'Create recipe'}
+          onPress={() => void handleSave()}
+          disabled={isSaving}
+          className="flex-1"
+        />
+      </View>
     </View>
   );
 

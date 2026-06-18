@@ -63,6 +63,7 @@ type MasterListRowProps = {
   trailing?: string;
   imageUrl?: string | null;
   showThumbnail?: boolean;
+  thumbnailPosition?: 'leading' | 'trailing';
   accessory?: ReactNode;
   selected?: boolean;
   onPress: () => void;
@@ -76,6 +77,7 @@ export function MasterListRow({
   trailing,
   imageUrl,
   showThumbnail = false,
+  thumbnailPosition = 'trailing',
   accessory,
   selected = false,
   onPress,
@@ -93,6 +95,9 @@ export function MasterListRow({
         borderLeftColor: selected ? palette.brand : 'transparent',
       }}>
       <View className="flex-row items-center gap-2.5">
+        {showThumbnail && thumbnailPosition === 'leading' ? (
+          <IngredientThumbnail uri={imageUrl} size={40} />
+        ) : null}
         <View className="min-w-0 flex-1">
           <View className="flex-row items-start justify-between gap-2">
             <Text className="flex-1 text-sm font-semibold text-text dark:text-text-dark" numberOfLines={1}>
@@ -124,7 +129,9 @@ export function MasterListRow({
         </View>
 
         {accessory}
-        {showThumbnail ? <IngredientThumbnail uri={imageUrl} size={40} /> : null}
+        {showThumbnail && thumbnailPosition !== 'leading' ? (
+          <IngredientThumbnail uri={imageUrl} size={40} />
+        ) : null}
       </View>
     </Pressable>
   );
