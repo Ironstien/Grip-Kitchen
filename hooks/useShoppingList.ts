@@ -6,6 +6,7 @@ import {
   createShoppingList,
   createShoppingListFromMealPlan,
   createShoppingListItem,
+  deleteShoppingList,
   deleteShoppingListItem,
   fetchShoppingListItems,
   fetchShoppingLists,
@@ -77,6 +78,11 @@ export function useShoppingListMutations(listId?: string) {
     onSuccess: invalidate,
   });
 
+  const deleteList = useMutation({
+    mutationFn: deleteShoppingList,
+    onSuccess: invalidate,
+  });
+
   const createFromMealPlan = useMutation({
     mutationFn: (input: { lines: MealPlanShoppingLine[]; name?: string; weekStart: string }) =>
       createShoppingListFromMealPlan(input.lines, {
@@ -99,6 +105,7 @@ export function useShoppingListMutations(listId?: string) {
     createList,
     renameList,
     archiveList,
+    deleteList,
     createFromMealPlan,
     ensureDefaultList,
   };

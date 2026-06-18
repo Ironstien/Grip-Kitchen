@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Alert, Pressable, SectionList, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { ShopItemEditSheet } from '@/components/shop/ShopItemEditSheet';
 import { IngredientThumbnail } from '@/components/ui/IngredientThumbnail';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
@@ -53,11 +54,13 @@ function ShopListRow({
   item,
   isDesktop,
   onTogglePurchased,
+  onEdit,
   onRemove,
 }: {
   item: ShoppingListEntry;
   isDesktop?: boolean;
   onTogglePurchased: () => void;
+  onEdit: () => void;
   onRemove: () => void;
 }) {
   const { palette } = useTheme();
@@ -84,7 +87,7 @@ function ShopListRow({
   return (
     <View
       className={cn(
-        'flex-row items-center gap-3 border-b border-border py-3 dark:border-border-dark',
+        'flex-row items-center gap-2 border-b border-border py-3 dark:border-border-dark',
         item.is_purchased && 'opacity-60',
       )}>
       <Pressable
@@ -92,7 +95,7 @@ function ShopListRow({
         accessibilityState={{ checked: item.is_purchased }}
         onPress={onTogglePurchased}
         className={cn(
-          'h-6 w-6 items-center justify-center rounded border',
+          'h-6 w-6 shrink-0 items-center justify-center rounded border',
           item.is_purchased
             ? 'border-brand bg-brand dark:border-brand-dark'
             : 'border-border dark:border-border-dark',
@@ -116,22 +119,23 @@ function ShopListRow({
         </Text>
       </View>
 
-      {isDesktop ? (
-        <Button
-          label={copied ? 'Copied' : 'Copy store name'}
-          variant="ghost"
-          onPress={() => void handleCopyStoreName()}
-          className="shrink-0"
-        />
-      ) : null}
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Remove from list"
-        onPress={onRemove}
-        className="h-8 w-8 items-center justify-center rounded-button active:opacity-70">
-        <Ionicons name="trash-outline" size={18} color={palette.textSecondary} />
-      </Pressable>
+      <View className="shrink-0 flex-row items-center gap-1">
+        <Button label="Edit" variant="ghost" onPress={onEdit} className="px-2" />
+        {isDesktop ? (
+          <Button
+            label={copied ? 'Copied' : 'Copy store name'}
+            variant="ghost"
+            onPress={() => void handleCopyStoreName()}
+          />
+        ) : null}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Remove from list"
+          onPress={onRemove}
+          className="h-8 w-8 items-center justify-center rounded-button active:opacity-70">
+          <Ionicons name="trash-outline" size={18} color={palette.textSecondary} />
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -139,6 +143,7 @@ function ShopListRow({
 export function ShopMobileList({ items, listId }: ShopMobileListProps) {
   const { isDesktop } = useResponsive();
   const { update, remove } = useShoppingListMutations(listId);
+  const [editingItem, setEditingItem] = useState<ShoppingListEntry | null>(null);
 
   const sections = useMemo(() => groupByCategory(items), [items]);
 
@@ -155,32 +160,55 @@ export function ShopMobileList({ items, listId }: ShopMobileListProps) {
     ]);
   };
 
+  const handleSaveQuantity = async (quantity: number) => {
+    if (!editingItem) {
+      return;
+    }
+
+    await update.mutateAsync({
+      id: editingItem.id,
+      input: { target_quantity: quantity },
+    });
+    setEditingItem(null);
+  };
+
   return (
-    <SectionList
-      sections={sections}
-      keyExtractor={(item) => item.id}
-      renderSectionHeader={({ section: { title } }) => (
-        <View className="bg-surface pb-1 pt-3 dark:bg-surface-dark">
-          <Text variant="label">{title}</Text>
-        </View>
-      )}
-      renderItem={({ item }) => (
-        <ShopListRow
-          item={item}
-          isDesktop={isDesktop}
-          onTogglePurchased={() => {
-            void update.mutateAsync({
-              id: item.id,
-              input: { is_purchased: !item.is_purchased },
-            });
-          }}
-          onRemove={() => handleRemove(item)}
-        />
-      )}
-      stickySectionHeadersEnabled
-      contentContainerClassName={`${pagePaddingClass(isDesktop)} pb-8`}
-      className="flex-1"
-      showsVerticalScrollIndicator={false}
-    />
+    <>
+      <SectionList
+        sections={sections}
+        keyExtractor={(item) => item.id}
+        renderSectionHeader={({ section: { title } }) => (
+          <View className="bg-surface pb-1 pt-3 dark:bg-surface-dark">
+            <Text variant="label">{title}</Text>
+          </View>
+        )}
+        renderItem={({ item }) => (
+          <ShopListRow
+            item={item}
+            isDesktop={isDesktop}
+            onTogglePurchased={() => {
+              void update.mutateAsync({
+                id: item.id,
+                input: { is_purchased: !item.is_purchased },
+              });
+            }}
+            onEdit={() => setEditingItem(item)}
+            onRemove={() => handleRemove(item)}
+          />
+        )}
+        stickySectionHeadersEnabled
+        contentContainerClassName={`${pagePaddingClass(isDesktop)} pb-8`}
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+      />
+
+      <ShopItemEditSheet
+        visible={editingItem != null}
+        item={editingItem}
+        onClose={() => setEditingItem(null)}
+        onSave={(quantity) => void handleSaveQuantity(quantity)}
+        isSaving={update.isPending}
+      />
+    </>
   );
 }

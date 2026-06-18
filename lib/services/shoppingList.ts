@@ -284,6 +284,14 @@ export async function deleteShoppingListItem(id: string): Promise<void> {
   }
 }
 
+export async function deleteShoppingList(id: string): Promise<void> {
+  const { error } = await supabase.from(tables.shoppingLists).delete().eq('id', id);
+
+  if (error) {
+    throw error;
+  }
+}
+
 export async function findActiveShoppingListEntry(
   listId: string,
   inventoryItemId: string,

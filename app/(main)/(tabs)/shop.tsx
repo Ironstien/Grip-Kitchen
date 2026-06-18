@@ -15,7 +15,11 @@ export default function ShopScreen() {
   const [selectedListId, setSelectedListId] = useState<string | undefined>();
 
   useEffect(() => {
-    if (!selectedListId && activeLists.length > 0) {
+    if (activeLists.length === 0) {
+      setSelectedListId(undefined);
+      return;
+    }
+    if (!selectedListId || !activeLists.some((list) => list.id === selectedListId)) {
       setSelectedListId(activeLists[0].id);
     }
   }, [activeLists, selectedListId]);

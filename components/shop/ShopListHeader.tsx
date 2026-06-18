@@ -13,14 +13,14 @@ import { cn } from '@/lib/cn';
 
 type ShopListHeaderProps = {
   selectedListId?: string;
-  onSelectList: (listId: string) => void;
+  onSelectList: (listId: string | undefined) => void;
 };
 
 export function ShopListHeader({ selectedListId, onSelectList }: ShopListHeaderProps) {
   const { palette } = useTheme();
   const { data: activeLists = [] } = useShoppingLists('active');
   const { data: archivedLists = [] } = useShoppingLists('archived');
-  const { createList, renameList, archiveList } = useShoppingListMutations(selectedListId);
+  const { createList, renameList, archiveList, deleteList } = useShoppingListMutations(selectedListId);
 
   const [pickerOpen, setPickerOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
@@ -30,6 +30,11 @@ export function ShopListHeader({ selectedListId, onSelectList }: ShopListHeaderP
     () => activeLists.find((list) => list.id === selectedListId) ?? activeLists[0],
     [activeLists, selectedListId],
   );
+
+  const selectAfterDelete = (deletedId: string) => {
+    const remaining = activeLists.filter((list) => list.id !== deletedId);
+    onSelectList(remaining[0]?.id);
+  };
 
   const openRename = () => {
     if (!selectedList) {
@@ -61,9 +66,27 @@ export function ShopListHeader({ selectedListId, onSelectList }: ShopListHeaderP
           text: 'Archive',
           onPress: () => {
             void archiveList.mutateAsync(selectedList.id).then(() => {
-              const next = activeLists.find((list) => list.id !== selectedList.id);
-              if (next) {
-                onSelectList(next.id);
+              selectAfterDelete(selectedList.id);
+            });
+          },
+        },
+      ],
+    );
+  };
+
+  const confirmDeleteList = (list: ShoppingListSession) => {
+    Alert.alert(
+      'Delete shopping list',
+      `Permanently delete "${list.name}" and all its items?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            void deleteList.mutateAsync(list.id).then(() => {
+              if (list.id === selectedListId) {
+                selectAfterDelete(list.id);
               }
             });
           },
@@ -94,12 +117,19 @@ export function ShopListHeader({ selectedListId, onSelectList }: ShopListHeaderP
           <Ionicons name="chevron-down" size={18} color={palette.textSecondary} />
         </Pressable>
 
-        <View className="flex-row gap-2">
-          <Button label="Rename" variant="ghost" onPress={openRename} className="flex-1" />
+        <View className="flex-row flex-wrap gap-2">
+          <Button label="Rename" variant="ghost" onPress={openRename} disabled={!selectedList} className="flex-1" />
           <Button
             label="Shopping done"
             variant="secondary"
             onPress={handleArchive}
+            disabled={!selectedList}
+            className="flex-1"
+          />
+          <Button
+            label="Delete list"
+            variant="ghost"
+            onPress={() => selectedList && confirmDeleteList(selectedList)}
             disabled={!selectedList}
             className="flex-1"
           />
@@ -125,6 +155,7 @@ export function ShopListHeader({ selectedListId, onSelectList }: ShopListHeaderP
                   onSelectList(list.id);
                   setPickerOpen(false);
                 }}
+                onDelete={() => confirmDeleteList(list)}
               />
             ))
           )}
@@ -137,7 +168,12 @@ export function ShopListHeader({ selectedListId, onSelectList }: ShopListHeaderP
                 Past lists
               </Text>
               {archivedLists.map((list) => (
-                <ListPickerRow key={list.id} list={list} archived />
+                <ListPickerRow
+                  key={list.id}
+                  list={list}
+                  archived
+                  onDelete={() => confirmDeleteList(list)}
+                />
               ))}
             </>
           ) : null}
@@ -157,27 +193,43 @@ function ListPickerRow({
   selected = false,
   archived = false,
   onPress,
+  onDelete,
 }: {
   list: ShoppingListSession;
   selected?: boolean;
   archived?: boolean;
   onPress?: () => void;
+  onDelete?: () => void;
 }) {
+  const { palette } = useTheme();
+
   return (
-    <Pressable
-      accessibilityRole="button"
-      disabled={archived}
-      onPress={onPress}
+    <View
       className={cn(
-        'mb-1 rounded-button border px-3 py-2.5',
+        'mb-1 flex-row items-center rounded-button border',
         selected ? 'border-brand bg-brand/10 dark:border-brand-dark' : 'border-border dark:border-border-dark',
-        archived && 'opacity-60',
+        archived && 'opacity-80',
       )}>
-      <Text className="font-medium">{list.name}</Text>
-      <Text variant="caption">
-        {archived ? 'Archived' : 'Active'}
-        {list.meal_plan_week_start ? ` · Week of ${list.meal_plan_week_start}` : ''}
-      </Text>
-    </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        disabled={archived && !onPress}
+        onPress={onPress}
+        className="min-w-0 flex-1 px-3 py-2.5">
+        <Text className="font-medium">{list.name}</Text>
+        <Text variant="caption">
+          {archived ? 'Archived' : 'Active'}
+          {list.meal_plan_week_start ? ` · Week of ${list.meal_plan_week_start}` : ''}
+        </Text>
+      </Pressable>
+      {onDelete ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Delete ${list.name}`}
+          onPress={onDelete}
+          className="h-10 w-10 items-center justify-center">
+          <Ionicons name="trash-outline" size={18} color={palette.textSecondary} />
+        </Pressable>
+      ) : null}
+    </View>
   );
 }
