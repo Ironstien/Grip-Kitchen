@@ -10,7 +10,7 @@ import { DietaryTagsEditor } from '@/components/recipes/DietaryTagsEditor';
 import { RecipeIngredientList } from '@/components/recipes/RecipeIngredientList';
 import { AutocompleteInput } from '@/components/ui/AutocompleteInput';
 import { ClipboardImagePicker } from '@/components/ui/ClipboardImagePicker';
-import { FormField } from '@/components/ui/Form';
+import { FormField, ConfirmModal } from '@/components/ui/Form';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -69,6 +69,8 @@ export function RecipeForm({ recipe, onSaved, onCancel, onDeleted }: RecipeFormP
   );
   const [draftIngredient, setDraftIngredient] = useState<DraftIngredient>(EMPTY_DRAFT);
   const [isSaving, setIsSaving] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const ingredientOptions = useMemo(
     () =>
@@ -296,20 +298,25 @@ export function RecipeForm({ recipe, onSaved, onCancel, onDeleted }: RecipeFormP
       return;
     }
 
-    Alert.alert(
-      'Delete recipe',
-      `Delete "${recipe.title}"? This cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            void remove.mutateAsync(recipe.id).then(() => (onDeleted ?? onCancel)());
-          },
-        },
-      ],
-    );
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!recipe) {
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+      await remove.mutateAsync(recipe.id);
+      setShowDeleteConfirm(false);
+      (onDeleted ?? onCancel)();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Delete failed.';
+      Alert.alert('Delete failed', message);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleSave = async () => {
@@ -559,27 +566,44 @@ export function RecipeForm({ recipe, onSaved, onCancel, onDeleted }: RecipeFormP
   );
 
   return (
-    <ScrollView contentContainerClassName="gap-5 pb-12" keyboardShouldPersistTaps="handled">
-      {isDesktop ? (
-        <>
-          {metadataFields}
-          <RecipeDesktopLayout
-            heroImage={heroImagePreview}
-            ingredients={ingredientsFields}
-            instructions={instructionsField}
-            footer={dietaryTagsField}
-          />
-        </>
-      ) : (
-        <>
-          {metadataFields}
-          {heroPhotoField}
-          {ingredientsFields}
-          {instructionsField}
-          {dietaryTagsField}
-        </>
-      )}
-      {actionButtons}
-    </ScrollView>
+    <>
+      <ScrollView contentContainerClassName="gap-5 pb-12" keyboardShouldPersistTaps="handled">
+        {isDesktop ? (
+          <>
+            {metadataFields}
+            <RecipeDesktopLayout
+              heroImage={heroImagePreview}
+              ingredients={ingredientsFields}
+              instructions={instructionsField}
+              footer={dietaryTagsField}
+            />
+          </>
+        ) : (
+          <>
+            {metadataFields}
+            {heroPhotoField}
+            {ingredientsFields}
+            {instructionsField}
+            {dietaryTagsField}
+          </>
+        )}
+        {actionButtons}
+      </ScrollView>
+
+      <ConfirmModal
+        visible={showDeleteConfirm}
+        title="Delete recipe"
+        message={
+          recipe ? `Delete "${recipe.title}"? This cannot be undone.` : 'Delete this recipe?'
+        }
+        confirmLabel={isDeleting ? 'Deleting…' : 'Delete'}
+        onConfirm={() => void confirmDelete()}
+        onCancel={() => {
+          if (!isDeleting) {
+            setShowDeleteConfirm(false);
+          }
+        }}
+      />
+    </>
   );
 }
