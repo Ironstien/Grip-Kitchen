@@ -91,10 +91,13 @@ export function MonthPlannerView({
         </View>
       ) : null}
 
-      <View className="min-h-0 flex-1 gap-px bg-border dark:bg-border-dark">
+      <View className="min-h-0 flex-1 gap-1 p-0.5">
         {calendarWeekRows.map((week, rowIndex) =>
           week ? (
-            <View key={week[0].toISOString()} className="min-h-0 flex-1 flex-row">
+            <View
+              key={week[0].toISOString()}
+              className="min-h-0 flex-1 flex-row gap-1"
+              style={{ flexDirection: 'row' }}>
               {week.map((date) => (
                 <MonthDayCell
                   key={date.toISOString()}
@@ -107,7 +110,11 @@ export function MonthPlannerView({
               ))}
             </View>
           ) : (
-            <View key={`empty-week-${rowIndex}`} className="min-h-0 flex-1 flex-row bg-surface dark:bg-surface-dark" />
+            <View
+              key={`empty-week-${rowIndex}`}
+              className="min-h-0 flex-1 flex-row gap-1"
+              style={{ flexDirection: 'row' }}
+            />
           ),
         )}
       </View>

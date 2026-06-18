@@ -14,6 +14,8 @@ import { isDateInMonth, toDateKey } from '@/lib/mealPlan/dates';
 import { getRecipeHeroImage, getRecipeTitle } from '@/lib/services/mealPlan';
 import { cn } from '@/lib/cn';
 
+const SLOT_ROW_HEIGHT = 24;
+
 type MonthDayCellProps = {
   date: Date;
   monthAnchor: Date;
@@ -35,19 +37,20 @@ export function MonthDayCell({
   return (
     <View
       className={cn(
-        'min-h-0 flex-1 border border-border p-1 dark:border-border-dark',
-        !inMonth && 'bg-surface-secondary/60 dark:bg-surface-dark-secondary/60',
-      )}>
+        'min-h-0 min-w-0 flex-1 rounded-md border border-border bg-surface p-1 dark:border-border-dark dark:bg-surface-dark',
+        !inMonth && 'bg-surface-secondary dark:bg-surface-dark-secondary',
+      )}
+      style={{ borderWidth: 1 }}>
       <Text
         variant="caption"
         className={cn(
-          'mb-0.5 font-semibold',
+          'mb-1 font-semibold',
           !inMonth && 'text-text-secondary dark:text-text-dark-secondary',
         )}>
         {date.getDate()}
       </Text>
 
-      <View className="min-h-0 flex-1 justify-between gap-0.5">
+      <View className="gap-0.5">
         {MEAL_SLOTS.map((mealLabel) => {
           const entry = lookup.get(`${dateKey}:${mealLabel}`);
           return (
@@ -87,13 +90,14 @@ function MonthMealSlotRow({
     return (
       <View
         className={cn(
-          'min-h-[26px] flex-1 flex-row items-center gap-1 rounded border border-brand/30 bg-surface px-0.5 dark:border-brand-dark/30 dark:bg-surface-dark',
+          'flex-row items-center gap-1 rounded border border-brand/30 bg-surface-secondary px-0.5 dark:border-brand-dark/30 dark:bg-surface-dark-secondary',
           muted && 'opacity-70',
-        )}>
+        )}
+        style={{ height: SLOT_ROW_HEIGHT }}>
         <Text variant="caption" className="w-3 text-[10px] font-bold">
           {MEAL_SLOT_ABBREV[mealLabel]}
         </Text>
-        <IngredientThumbnail uri={heroImage} size={20} className="rounded" />
+        <IngredientThumbnail uri={heroImage} size={18} className="rounded" />
         <Text className="min-w-0 flex-1 text-[10px] leading-tight" numberOfLines={1}>
           {title}
         </Text>
@@ -101,7 +105,7 @@ function MonthMealSlotRow({
           label="Edit"
           variant="ghost"
           onPress={onEdit ?? onPress}
-          className="min-h-[22px] shrink-0 px-1.5 py-0"
+          className="min-h-[20px] shrink-0 px-1 py-0"
           textClassName="text-[10px]"
         />
       </View>
@@ -114,9 +118,10 @@ function MonthMealSlotRow({
       accessibilityLabel={`Add ${mealLabel}`}
       onPress={onPress}
       className={cn(
-        'min-h-[26px] flex-1 flex-row items-center gap-1 rounded border border-dashed border-border px-1 dark:border-border-dark',
+        'flex-row items-center gap-1 rounded border border-dashed border-border bg-field px-1 active:opacity-80 dark:border-border-dark dark:bg-field-dark',
         muted && 'opacity-70',
-      )}>
+      )}
+      style={{ height: SLOT_ROW_HEIGHT, zIndex: 1 }}>
       <Text variant="caption" className="w-3 text-[10px] font-bold">
         {MEAL_SLOT_ABBREV[mealLabel]}
       </Text>
