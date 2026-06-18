@@ -1,20 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { useMemo } from 'react';
+import { ScrollView, View } from 'react-native';
 
 import { MonthDayCell } from '@/components/planner/MonthDayCell';
 import { Text } from '@/components/ui/Text';
 import { MEAL_SLOTS } from '@/lib/mealPlan/constants';
 import type { MealPlanEntryWithRecipe } from '@/lib/mealPlan/aggregateIngredients';
-import {
-  getInitialMonthWeekPage,
-  getMonthWeekRows,
-  getVisibleMonthWeekPageCount,
-  MONTH_CALENDAR_WEEKS_VISIBLE,
-} from '@/lib/mealPlan/dates';
+import { getMonthWeekRows, MONTH_CALENDAR_WEEKS_VISIBLE } from '@/lib/mealPlan/dates';
 import { buildMealPlanLookup } from '@/lib/services/mealPlan';
 import { useResponsive } from '@/hooks/useResponsive';
-import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/lib/cn';
 
 type MonthPlannerViewProps = {
@@ -33,29 +26,19 @@ export function MonthPlannerView({
   onSlotEdit,
 }: MonthPlannerViewProps) {
   const { isDesktop } = useResponsive();
-  const { palette } = useTheme();
   const lookup = buildMealPlanLookup(entries);
   const weekRows = useMemo(() => getMonthWeekRows(monthAnchor), [monthAnchor]);
-  const pageCount = getVisibleMonthWeekPageCount(weekRows.length);
-  const [weekPage, setWeekPage] = useState(() => getInitialMonthWeekPage(monthAnchor, weekRows.length));
-
-  useEffect(() => {
-    setWeekPage(getInitialMonthWeekPage(monthAnchor, weekRows.length));
-  }, [monthAnchor, weekRows.length]);
-
-  const visibleWeeks = weekRows.slice(
-    weekPage * MONTH_CALENDAR_WEEKS_VISIBLE,
-    weekPage * MONTH_CALENDAR_WEEKS_VISIBLE + MONTH_CALENDAR_WEEKS_VISIBLE,
-  );
-  const calendarWeekRows = Array.from({ length: MONTH_CALENDAR_WEEKS_VISIBLE }, (_, index) =>
-    visibleWeeks[index] ?? null,
+  const calendarWeekRows = useMemo(
+    () =>
+      Array.from({ length: MONTH_CALENDAR_WEEKS_VISIBLE }, (_, index) => weekRows[index] ?? null),
+    [weekRows],
   );
 
   const calendarBody = (
     <View className={cn('flex-1', isDesktop ? 'min-h-0' : 'min-h-[640px]')}>
       <View className="mb-1 flex-row border-b border-border dark:border-border-dark">
         {WEEKDAY_LABELS.map((label) => (
-          <View key={label} className="flex-1 items-center py-1.5">
+          <View key={label} className="flex-1 items-center py-1">
             <Text variant="caption" className="font-semibold">
               {label}
             </Text>
@@ -63,35 +46,7 @@ export function MonthPlannerView({
         ))}
       </View>
 
-      {pageCount > 1 ? (
-        <View className="mb-1 flex-row items-center justify-center gap-3">
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Previous weeks"
-            disabled={weekPage === 0}
-            onPress={() => setWeekPage((current) => Math.max(0, current - 1))}
-            className={cn('h-7 w-7 items-center justify-center rounded-button', weekPage === 0 && 'opacity-30')}>
-            <Ionicons name="chevron-back" size={16} color={palette.textSecondary} />
-          </Pressable>
-          <Text variant="caption">
-            Weeks {weekPage * MONTH_CALENDAR_WEEKS_VISIBLE + 1}–
-            {Math.min((weekPage + 1) * MONTH_CALENDAR_WEEKS_VISIBLE, weekRows.length)} of {weekRows.length}
-          </Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Next weeks"
-            disabled={weekPage >= pageCount - 1}
-            onPress={() => setWeekPage((current) => Math.min(pageCount - 1, current + 1))}
-            className={cn(
-              'h-7 w-7 items-center justify-center rounded-button',
-              weekPage >= pageCount - 1 && 'opacity-30',
-            )}>
-            <Ionicons name="chevron-forward" size={16} color={palette.textSecondary} />
-          </Pressable>
-        </View>
-      ) : null}
-
-      <View className="min-h-0 flex-1 gap-1 p-0.5">
+      <View className="min-h-0 flex-1 gap-1">
         {calendarWeekRows.map((week, rowIndex) =>
           week ? (
             <View

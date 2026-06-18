@@ -95,26 +95,6 @@ export function isDateInMonth(date: Date, monthAnchor: Date): boolean {
 
 export const MONTH_CALENDAR_WEEKS_VISIBLE = 4;
 
-export function getVisibleMonthWeekPageCount(totalWeeks: number): number {
-  return Math.max(1, Math.ceil(totalWeeks / MONTH_CALENDAR_WEEKS_VISIBLE));
-}
-
-export function getInitialMonthWeekPage(monthAnchor: Date, totalWeeks: number): number {
-  const today = new Date();
-  if (!isDateInMonth(today, monthAnchor)) {
-    return 0;
-  }
-
-  const weeks = getMonthWeekRows(monthAnchor);
-  const weekIndex = weeks.findIndex((week) => week.some((date) => toDateKey(date) === toDateKey(today)));
-
-  if (weekIndex < 0) {
-    return 0;
-  }
-
-  return Math.floor(weekIndex / MONTH_CALENDAR_WEEKS_VISIBLE);
-}
-
 export function defaultShoppingListName(date = new Date()): string {
   return toDateKey(date);
 }

@@ -8,6 +8,7 @@ export type PlannerViewMode = 'week' | 'month' | 'agenda';
 type PlannerViewTabsProps = {
   value: PlannerViewMode;
   onChange: (mode: PlannerViewMode) => void;
+  compact?: boolean;
 };
 
 const MODES: { id: PlannerViewMode; label: string }[] = [
@@ -16,9 +17,13 @@ const MODES: { id: PlannerViewMode; label: string }[] = [
   { id: 'agenda', label: 'Agenda' },
 ];
 
-export function PlannerViewTabs({ value, onChange }: PlannerViewTabsProps) {
+export function PlannerViewTabs({ value, onChange, compact = false }: PlannerViewTabsProps) {
   return (
-    <View className="flex-row rounded-button border border-border bg-field p-0.5 dark:border-border-dark dark:bg-field-dark">
+    <View
+      className={cn(
+        'flex-row rounded-button border border-border bg-field p-0.5 dark:border-border-dark dark:bg-field-dark',
+        compact && 'shrink-0',
+      )}>
       {MODES.map((mode) => {
         const active = value === mode.id;
         return (
@@ -28,7 +33,8 @@ export function PlannerViewTabs({ value, onChange }: PlannerViewTabsProps) {
             accessibilityState={{ selected: active }}
             onPress={() => onChange(mode.id)}
             className={cn(
-              'flex-1 items-center rounded-button px-2 py-1.5',
+              'items-center rounded-button px-2.5 py-1.5',
+              !compact && 'flex-1',
               active && 'bg-surface shadow-field dark:bg-surface-dark',
             )}>
             <Text
