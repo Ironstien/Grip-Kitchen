@@ -3,6 +3,7 @@ import { Alert, Pressable, SectionList, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ShopItemEditSheet } from '@/components/shop/ShopItemEditSheet';
+import { ConfirmSheet } from '@/components/ui/ConfirmSheet';
 import { IngredientThumbnail } from '@/components/ui/IngredientThumbnail';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
@@ -144,20 +145,16 @@ export function ShopMobileList({ items, listId }: ShopMobileListProps) {
   const { isDesktop } = useResponsive();
   const { update, remove } = useShoppingListMutations(listId);
   const [editingItem, setEditingItem] = useState<ShoppingListEntry | null>(null);
+  const [removeTarget, setRemoveTarget] = useState<ShoppingListEntry | null>(null);
 
   const sections = useMemo(() => groupByCategory(items), [items]);
 
-  const handleRemove = (entry: ShoppingListEntry) => {
-    Alert.alert('Remove from list', `Remove ${getIngredientDisplayName(entry)} from your Shop list?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Remove',
-        style: 'destructive',
-        onPress: () => {
-          void remove.mutateAsync(entry.id);
-        },
-      },
-    ]);
+  const handleConfirmRemove = async () => {
+    if (!removeTarget) {
+      return;
+    }
+    await remove.mutateAsync(removeTarget.id);
+    setRemoveTarget(null);
   };
 
   const handleSaveQuantity = async (quantity: number) => {
@@ -193,7 +190,7 @@ export function ShopMobileList({ items, listId }: ShopMobileListProps) {
               });
             }}
             onEdit={() => setEditingItem(item)}
-            onRemove={() => handleRemove(item)}
+            onRemove={() => setRemoveTarget(item)}
           />
         )}
         stickySectionHeadersEnabled
@@ -208,6 +205,20 @@ export function ShopMobileList({ items, listId }: ShopMobileListProps) {
         onClose={() => setEditingItem(null)}
         onSave={(quantity) => void handleSaveQuantity(quantity)}
         isSaving={update.isPending}
+      />
+
+      <ConfirmSheet
+        visible={removeTarget != null}
+        title="Remove from list"
+        message={
+          removeTarget
+            ? `Remove ${getIngredientDisplayName(removeTarget)} from your Shop list?`
+            : ''
+        }
+        confirmLabel="Remove"
+        onConfirm={() => void handleConfirmRemove()}
+        onCancel={() => setRemoveTarget(null)}
+        isLoading={remove.isPending}
       />
     </>
   );

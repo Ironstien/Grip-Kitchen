@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
+import { ConfirmSheet } from '@/components/ui/ConfirmSheet';
 import { Input } from '@/components/ui/Input';
 import { Text } from '@/components/ui/Text';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -25,6 +26,8 @@ export function ShopListHeader({ selectedListId, onSelectList }: ShopListHeaderP
   const [pickerOpen, setPickerOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [renameValue, setRenameValue] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<ShoppingListSession | null>(null);
+  const [archiveTarget, setArchiveTarget] = useState<ShoppingListSession | null>(null);
 
   const selectedList = useMemo(
     () => activeLists.find((list) => list.id === selectedListId) ?? activeLists[0],
@@ -52,47 +55,29 @@ export function ShopListHeader({ selectedListId, onSelectList }: ShopListHeaderP
     setRenameOpen(false);
   };
 
-  const handleArchive = () => {
-    if (!selectedList) {
+  const handleConfirmArchive = async () => {
+    if (!archiveTarget) {
       return;
     }
 
-    Alert.alert(
-      'Confirm shopping done',
-      `Archive "${selectedList.name}"? You can still view it in past lists.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Archive',
-          onPress: () => {
-            void archiveList.mutateAsync(selectedList.id).then(() => {
-              selectAfterDelete(selectedList.id);
-            });
-          },
-        },
-      ],
-    );
+    await archiveList.mutateAsync(archiveTarget.id);
+    if (archiveTarget.id === selectedListId) {
+      selectAfterDelete(archiveTarget.id);
+    }
+    setArchiveTarget(null);
   };
 
-  const confirmDeleteList = (list: ShoppingListSession) => {
-    Alert.alert(
-      'Delete shopping list',
-      `Permanently delete "${list.name}" and all its items?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            void deleteList.mutateAsync(list.id).then(() => {
-              if (list.id === selectedListId) {
-                selectAfterDelete(list.id);
-              }
-            });
-          },
-        },
-      ],
-    );
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) {
+      return;
+    }
+
+    await deleteList.mutateAsync(deleteTarget.id);
+    if (deleteTarget.id === selectedListId) {
+      selectAfterDelete(deleteTarget.id);
+    }
+    setDeleteTarget(null);
+    setPickerOpen(false);
   };
 
   const handleNewList = async () => {
@@ -122,14 +107,14 @@ export function ShopListHeader({ selectedListId, onSelectList }: ShopListHeaderP
           <Button
             label="Shopping done"
             variant="secondary"
-            onPress={handleArchive}
+            onPress={() => selectedList && setArchiveTarget(selectedList)}
             disabled={!selectedList}
             className="flex-1"
           />
           <Button
             label="Delete list"
             variant="ghost"
-            onPress={() => selectedList && confirmDeleteList(selectedList)}
+            onPress={() => selectedList && setDeleteTarget(selectedList)}
             disabled={!selectedList}
             className="flex-1"
           />
@@ -155,7 +140,7 @@ export function ShopListHeader({ selectedListId, onSelectList }: ShopListHeaderP
                   onSelectList(list.id);
                   setPickerOpen(false);
                 }}
-                onDelete={() => confirmDeleteList(list)}
+                onDelete={() => setDeleteTarget(list)}
               />
             ))
           )}
@@ -172,7 +157,7 @@ export function ShopListHeader({ selectedListId, onSelectList }: ShopListHeaderP
                   key={list.id}
                   list={list}
                   archived
-                  onDelete={() => confirmDeleteList(list)}
+                  onDelete={() => setDeleteTarget(list)}
                 />
               ))}
             </>
@@ -184,6 +169,34 @@ export function ShopListHeader({ selectedListId, onSelectList }: ShopListHeaderP
         <Input value={renameValue} onChangeText={setRenameValue} placeholder="List name" className="mb-3" />
         <Button label="Save" onPress={() => void handleRename()} disabled={!renameValue.trim()} />
       </BottomSheet>
+
+      <ConfirmSheet
+        visible={deleteTarget != null}
+        title="Delete shopping list"
+        message={
+          deleteTarget
+            ? `Permanently delete "${deleteTarget.name}" and all its items?`
+            : ''
+        }
+        confirmLabel="Delete"
+        onConfirm={() => void handleConfirmDelete()}
+        onCancel={() => setDeleteTarget(null)}
+        isLoading={deleteList.isPending}
+      />
+
+      <ConfirmSheet
+        visible={archiveTarget != null}
+        title="Confirm shopping done"
+        message={
+          archiveTarget
+            ? `Archive "${archiveTarget.name}"? You can still view it in past lists.`
+            : ''
+        }
+        confirmLabel="Archive"
+        onConfirm={() => void handleConfirmArchive()}
+        onCancel={() => setArchiveTarget(null)}
+        isLoading={archiveList.isPending}
+      />
     </>
   );
 }
