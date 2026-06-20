@@ -18,6 +18,10 @@ export function formatErrorMessage(error: unknown, fallback = 'Something went wr
     }
 
     if (pgError.code === '23503') {
+      if (pgError.message?.includes('recipe_ingredients')) {
+        return 'This ingredient is used in one or more recipes. Remove it from those recipes first.';
+      }
+
       return 'Your account profile is not set up yet. Try signing out and back in.';
     }
 

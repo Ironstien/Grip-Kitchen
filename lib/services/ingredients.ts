@@ -1,6 +1,8 @@
 import { ensureUserProfile, tables } from '@/lib/database';
 import { toError } from '@/lib/errors';
 import { syncLegacyIngredientFields } from '@/lib/ingredients';
+import { createInventoryItem } from '@/lib/services/inventory';
+import { ensureDefaultStorageLocations } from '@/lib/services/storageLocations';
 import { supabase } from '@/lib/supabase';
 import type {
   Ingredient,
@@ -106,7 +108,19 @@ export async function createIngredient(input: IngredientInsertInput): Promise<In
     throw toError(error, 'Could not create ingredient.');
   }
 
-  return mapIngredientRow(data as Ingredient & { ingredient_conversions?: IngredientConversion[] });
+  const ingredient = mapIngredientRow(
+    data as Ingredient & { ingredient_conversions?: IngredientConversion[] },
+  );
+
+  const locations = await ensureDefaultStorageLocations();
+  await createInventoryItem({
+    ingredient_id: ingredient.id,
+    quantity: 0,
+    location_id: locations[0]?.id ?? null,
+    min_threshold: 0,
+  });
+
+  return ingredient;
 }
 
 export async function updateIngredient(
@@ -164,7 +178,7 @@ export async function deleteIngredient(id: string): Promise<void> {
   const { error } = await supabase.from(tables.ingredients).delete().eq('id', id);
 
   if (error) {
-    throw error;
+    throw toError(error, 'Could not delete ingredient.');
   }
 }
 

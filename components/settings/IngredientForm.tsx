@@ -5,7 +5,7 @@ import type { DetailAction } from '@/components/layout/DetailPaneHeader';
 import { IngredientConversionsEditor } from '@/components/settings/IngredientConversionsEditor';
 import { CategorySelect } from '@/components/ui/CategorySelect';
 import { ClipboardImagePicker } from '@/components/ui/ClipboardImagePicker';
-import { FormField } from '@/components/ui/Form';
+import { FormField, ConfirmModal } from '@/components/ui/Form';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { UnitSelect } from '@/components/ui/UnitSelect';
@@ -17,6 +17,7 @@ import { useUserUnits } from '@/hooks/useUserUnits';
 import { isLocalImageUri, revokeLocalImageUri } from '@/lib/clipboardImage';
 import { isMasterCategoryName } from '@/lib/categories';
 import { cn } from '@/lib/cn';
+import { formatErrorMessage } from '@/lib/errors';
 import { fieldPanelClassName } from '@/lib/fieldStyles';
 import { formatPurchaseSummary } from '@/lib/ingredients';
 import { isMasterUnitSymbol } from '@/lib/units';
@@ -52,6 +53,8 @@ export function IngredientForm({
   const [imageUrl, setImageUrl] = useState(ingredient?.image_url ?? '');
   const [imageMimeType, setImageMimeType] = useState<string | undefined>();
   const [isSaving, setIsSaving] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     setName(ingredient?.name ?? '');
@@ -192,20 +195,24 @@ export function IngredientForm({
       return;
     }
 
-    Alert.alert(
-      'Delete ingredient',
-      `Delete ${ingredient.name}? This removes it from the pantry and cannot be undone if used in recipes.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            void remove.mutateAsync(ingredient.id).then(() => onCancel());
-          },
-        },
-      ],
-    );
+    setShowDeleteConfirm(true);
+  }, [ingredient]);
+
+  const confirmDelete = useCallback(async () => {
+    if (!ingredient) {
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+      await remove.mutateAsync(ingredient.id);
+      setShowDeleteConfirm(false);
+      onCancel();
+    } catch (error) {
+      Alert.alert('Delete failed', formatErrorMessage(error, 'Delete failed.'));
+    } finally {
+      setIsDeleting(false);
+    }
   }, [ingredient, onCancel, remove]);
 
   const handleSaveRef = useRef(handleSave);
@@ -443,6 +450,23 @@ export function IngredientForm({
           ) : null}
         </View>
       ) : null}
+
+      <ConfirmModal
+        visible={showDeleteConfirm}
+        title="Delete ingredient"
+        message={
+          ingredient
+            ? `Delete ${ingredient.name}? This removes it from the pantry and cannot be undone if used in recipes.`
+            : 'Delete this ingredient?'
+        }
+        confirmLabel={isDeleting ? 'Deleting…' : 'Delete'}
+        onConfirm={() => void confirmDelete()}
+        onCancel={() => {
+          if (!isDeleting) {
+            setShowDeleteConfirm(false);
+          }
+        }}
+      />
     </View>
   );
 }

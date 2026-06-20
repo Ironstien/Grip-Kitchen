@@ -4,6 +4,7 @@ import { Alert, Modal, Pressable, ScrollView, TextInput, View } from 'react-nati
 import { IngredientConversionsEditor } from '@/components/settings/IngredientConversionsEditor';
 import { CategorySelect } from '@/components/ui/CategorySelect';
 import { Button } from '@/components/ui/Button';
+import { ConfirmModal } from '@/components/ui/Form';
 import { Text } from '@/components/ui/Text';
 import { UnitSelect } from '@/components/ui/UnitSelect';
 import { useIngredientMutations } from '@/hooks/useIngredients';
@@ -101,6 +102,12 @@ export function MasterIngredientsDesktopSpreadsheet({
   const [conversionsIngredient, setConversionsIngredient] = useState<IngredientWithConversions | null>(
     null,
   );
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    ids: string[];
+    title: string;
+    message: string;
+  } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { create, update, remove } = useIngredientMutations();
 
   useEffect(() => {
@@ -364,37 +371,40 @@ export function MasterIngredientsDesktopSpreadsheet({
       return;
     }
 
-    Alert.alert(
-      'Delete ingredients',
-      `Delete ${selectedIds.size} selected ingredient(s)? This cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            void Promise.all(Array.from(selectedIds).map((id) => remove.mutateAsync(id))).then(() =>
-              setSelectedIds(new Set()),
-            );
-          },
-        },
-      ],
-    );
+    setDeleteConfirm({
+      ids: Array.from(selectedIds),
+      title: 'Delete ingredients',
+      message: `Delete ${selectedIds.size} selected ingredient(s)? This cannot be undone.`,
+    });
   };
 
   const handleDeleteRow = (ingredient: IngredientWithConversions) => {
-    Alert.alert(
-      'Delete ingredient',
-      `Delete ${ingredient.name}? This removes it from the pantry and cannot be undone if used in recipes.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => void remove.mutateAsync(ingredient.id),
-        },
-      ],
-    );
+    setDeleteConfirm({
+      ids: [ingredient.id],
+      title: 'Delete ingredient',
+      message: `Delete ${ingredient.name}? This removes it from the pantry and cannot be undone if used in recipes.`,
+    });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm) {
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+      await Promise.all(deleteConfirm.ids.map((id) => remove.mutateAsync(id)));
+
+      if (deleteConfirm.ids.length > 1) {
+        setSelectedIds(new Set());
+      }
+
+      setDeleteConfirm(null);
+    } catch (error) {
+      Alert.alert('Delete failed', formatErrorMessage(error, 'Delete failed.'));
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const renderTextCell = (
@@ -641,6 +651,19 @@ export function MasterIngredientsDesktopSpreadsheet({
           </View>
         </View>
       </Modal>
+
+      <ConfirmModal
+        visible={deleteConfirm !== null}
+        title={deleteConfirm?.title ?? 'Delete ingredient'}
+        message={deleteConfirm?.message ?? ''}
+        confirmLabel={isDeleting ? 'Deleting…' : 'Delete'}
+        onConfirm={() => void confirmDelete()}
+        onCancel={() => {
+          if (!isDeleting) {
+            setDeleteConfirm(null);
+          }
+        }}
+      />
     </View>
   );
 }
