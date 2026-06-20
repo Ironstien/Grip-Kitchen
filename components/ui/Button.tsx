@@ -1,4 +1,4 @@
-import { Pressable, PressableProps, Text } from 'react-native';
+import { Platform, Pressable, PressableProps, Text } from 'react-native';
 
 import { cn } from '@/lib/cn';
 import { fieldSurfaceClassName } from '@/lib/fieldStyles';
@@ -36,6 +36,7 @@ export function Button({
     <Pressable
       accessibilityRole="button"
       disabled={disabled}
+      {...(Platform.OS === 'web' ? ({ type: 'button' } as object) : {})}
       className={cn(
         'min-h-[32px] items-center justify-center rounded-button px-3 py-1.5 active:opacity-80',
         variantClasses[variant],

@@ -8,10 +8,15 @@ import { Input } from '@/components/ui/Input';
 import { Text } from '@/components/ui/Text';
 import { useIngredientConversionMutations } from '@/hooks/useIngredientConversions';
 import { useUserUnits } from '@/hooks/useUserUnits';
+import { cn } from '@/lib/cn';
+import {
+  getAvailableConversionSuggestions,
+  suggestionToDraft,
+  type ConversionSuggestion,
+} from '@/lib/conversionSuggestions';
 import { formatErrorMessage } from '@/lib/errors';
 import { fieldPanelClassName } from '@/lib/fieldStyles';
 import { isMasterUnitSymbol } from '@/lib/units';
-import { cn } from '@/lib/cn';
 import type { IngredientConversion, IngredientWithConversions } from '@/types/database';
 
 type ConversionDraft = {
@@ -41,8 +46,8 @@ function createEmptyDraft(stockUnit: string): ConversionDraft {
   };
 }
 
-function formatRuleLabel(rule: ConversionDraft): string {
-  return `1 ${rule.from_unit} = ${rule.factor} ${rule.to_unit}`;
+function isEmptyDraft(draft: ConversionDraft): boolean {
+  return !draft.from_unit.trim() && !draft.to_unit.trim() && !draft.factor.trim();
 }
 
 export function IngredientConversionsEditor({
@@ -51,11 +56,8 @@ export function IngredientConversionsEditor({
 }: IngredientConversionsEditorProps) {
   const { data: masterUnits = [] } = useUserUnits();
   const { replace } = useIngredientConversionMutations();
-  const [savedRules, setSavedRules] = useState<ConversionDraft[]>([]);
-  const [draftRule, setDraftRule] = useState<ConversionDraft>(() =>
-    createEmptyDraft(ingredient.stock_unit),
-  );
-  const [draftError, setDraftError] = useState<string | null>(null);
+  const [drafts, setDrafts] = useState<ConversionDraft[]>([]);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   const serverConversionKey = useMemo(
@@ -64,115 +66,124 @@ export function IngredientConversionsEditor({
   );
 
   useEffect(() => {
-    setSavedRules(ingredient.ingredient_conversions.map(toDraft));
-    setDraftRule(createEmptyDraft(ingredient.stock_unit));
-    setDraftError(null);
+    const existing = ingredient.ingredient_conversions.map(toDraft);
+    setDrafts(existing.length > 0 ? existing : [createEmptyDraft(ingredient.stock_unit)]);
+    setSaveError(null);
   }, [ingredient.id, ingredient.stock_unit, serverConversionKey]);
 
-  const updateDraftRule = (patch: Partial<ConversionDraft>) => {
-    setDraftError(null);
-    setDraftRule((current) => ({ ...current, ...patch }));
-  };
-
-  const resetDraftRule = () => {
-    setDraftRule(createEmptyDraft(ingredient.stock_unit));
-    setDraftError(null);
-  };
-
-  const parseRule = (
-    draft: ConversionDraft,
-    showAlert: boolean,
-  ): { from_unit: string; to_unit: string; factor: number } | null => {
-    const fail = (message: string) => {
-      if (showAlert) {
-        Alert.alert('Invalid conversion', message);
-      }
-      return null;
-    };
-
-    if (!draft.from_unit.trim()) {
-      return fail('Choose a “from” unit.');
-    }
-
-    if (!draft.to_unit.trim()) {
-      return fail('Choose a “to” unit.');
-    }
-
-    if (!isMasterUnitSymbol(draft.from_unit, masterUnits)) {
-      return fail('Choose a valid “from” unit from the Master Units List.');
-    }
-
-    if (!isMasterUnitSymbol(draft.to_unit, masterUnits)) {
-      return fail('Choose a valid “to” unit from the Master Units List.');
-    }
-
-    if (draft.from_unit === draft.to_unit) {
-      return fail('“From” and “to” units must be different.');
-    }
-
-    if (!draft.factor.trim()) {
-      return fail('Enter the conversion factor (e.g. 12).');
-    }
-
-    const factor = Number(draft.factor);
-    if (Number.isNaN(factor) || factor <= 0) {
-      return fail('Enter a positive factor.');
-    }
-
-    return {
-      from_unit: draft.from_unit,
-      to_unit: draft.to_unit,
-      factor,
-    };
-  };
-
-  const commitDraftRule = () => {
-    const parsed = parseRule(draftRule, false);
-    if (!parsed) {
-      const message =
-        !draftRule.to_unit.trim()
-          ? 'Choose a “to” unit.'
-          : !draftRule.factor.trim()
-            ? 'Enter the conversion factor (e.g. 12).'
-            : !isMasterUnitSymbol(draftRule.from_unit, masterUnits) ||
-                !isMasterUnitSymbol(draftRule.to_unit, masterUnits)
-              ? 'Choose units from the Master Units List.'
-              : draftRule.from_unit === draftRule.to_unit
-                ? '“From” and “to” units must be different.'
-                : 'Enter a valid conversion rule.';
-      setDraftError(message);
-      return;
-    }
-
-    const duplicate = savedRules.some(
-      (rule) => rule.from_unit === parsed.from_unit && rule.to_unit === parsed.to_unit,
+  const updateDraft = (index: number, patch: Partial<ConversionDraft>) => {
+    setSaveError(null);
+    setDrafts((current) =>
+      current.map((entry, entryIndex) => (entryIndex === index ? { ...entry, ...patch } : entry)),
     );
-    if (duplicate) {
-      setDraftError('That conversion rule already exists.');
-      return;
-    }
-
-    setSavedRules((current) => [
-      ...current,
-      {
-        from_unit: parsed.from_unit,
-        to_unit: parsed.to_unit,
-        factor: String(parsed.factor),
-      },
-    ]);
-    resetDraftRule();
   };
 
-  const removeRule = (index: number) => {
-    setSavedRules((current) => current.filter((_, entryIndex) => entryIndex !== index));
+  const addDraft = () => {
+    setSaveError(null);
+    setDrafts((current) => [...current, createEmptyDraft(ingredient.stock_unit)]);
+  };
+
+  const removeDraft = (index: number) => {
+    setSaveError(null);
+    setDrafts((current) => {
+      const next = current.filter((_, entryIndex) => entryIndex !== index);
+      return next.length > 0 ? next : [createEmptyDraft(ingredient.stock_unit)];
+    });
+  };
+
+  const applySuggestion = (suggestion: ConversionSuggestion) => {
+    setSaveError(null);
+    const draft = suggestionToDraft(suggestion);
+
+    setDrafts((current) => {
+      const emptyIndex = current.findIndex(isEmptyDraft);
+
+      if (emptyIndex >= 0) {
+        return current.map((entry, entryIndex) => (entryIndex === emptyIndex ? draft : entry));
+      }
+
+      return [...current, draft];
+    });
+  };
+
+  const availableSuggestions = useMemo(
+    () =>
+      getAvailableConversionSuggestions(
+        drafts,
+        masterUnits,
+        ingredient.stock_unit,
+        ingredient.purchase_unit,
+      ),
+    [drafts, ingredient.purchase_unit, ingredient.stock_unit, masterUnits],
+  );
+
+  const validateDrafts = (): Array<{ from_unit: string; to_unit: string; factor: number }> | null => {
+    const parsed: Array<{ from_unit: string; to_unit: string; factor: number }> = [];
+    const seen = new Set<string>();
+
+    for (const draft of drafts) {
+      if (isEmptyDraft(draft)) {
+        continue;
+      }
+
+      if (!draft.from_unit.trim()) {
+        setSaveError('Each rule needs a “from” unit.');
+        return null;
+      }
+
+      if (!draft.to_unit.trim()) {
+        setSaveError('Each rule needs a “to” unit.');
+        return null;
+      }
+
+      if (!isMasterUnitSymbol(draft.from_unit, masterUnits)) {
+        setSaveError('Choose “from” units from the Master Units List.');
+        return null;
+      }
+
+      if (!isMasterUnitSymbol(draft.to_unit, masterUnits)) {
+        setSaveError('Choose “to” units from the Master Units List.');
+        return null;
+      }
+
+      if (draft.from_unit === draft.to_unit) {
+        setSaveError('“From” and “to” units must be different.');
+        return null;
+      }
+
+      if (!draft.factor.trim()) {
+        setSaveError('Enter the conversion factor (e.g. 12).');
+        return null;
+      }
+
+      const factor = Number(draft.factor);
+      if (Number.isNaN(factor) || factor <= 0) {
+        setSaveError('Enter a positive factor for each rule.');
+        return null;
+      }
+
+      const key = `${draft.from_unit}:${draft.to_unit}`;
+      if (seen.has(key)) {
+        setSaveError('Remove duplicate conversion rules before saving.');
+        return null;
+      }
+      seen.add(key);
+
+      parsed.push({
+        from_unit: draft.from_unit,
+        to_unit: draft.to_unit,
+        factor,
+      });
+    }
+
+    return parsed;
   };
 
   const handleSave = async () => {
-    const parsed = savedRules.map((draft) => ({
-      from_unit: draft.from_unit,
-      to_unit: draft.to_unit,
-      factor: Number(draft.factor),
-    }));
+    const parsed = validateDrafts();
+    if (!parsed) {
+      return;
+    }
 
     try {
       setIsSaving(true);
@@ -185,6 +196,8 @@ export function IngredientConversionsEditor({
     }
   };
 
+  const hasFilledDraft = drafts.some((draft) => !isEmptyDraft(draft));
+
   return (
     <View className="gap-3">
       <Text variant="bodySecondary">
@@ -192,60 +205,69 @@ export function IngredientConversionsEditor({
         Recipes can use the stock unit, purchase unit, and any units defined in conversion rules.
       </Text>
 
-      <View className={cn('gap-2', fieldPanelClassName)}>
-        <View className="flex-row flex-wrap items-center gap-2">
-          <Text className="text-sm">1</Text>
-          <UnitSelect
-            compact
-            value={draftRule.from_unit}
-            units={masterUnits}
-            onChange={(symbol) => updateDraftRule({ from_unit: symbol })}
-            className="min-w-[88px]"
-          />
-          <Text className="text-sm">=</Text>
-          <Input
-            value={draftRule.factor}
-            onChangeText={(value) => updateDraftRule({ factor: value })}
-            keyboardType="decimal-pad"
-            placeholder="12"
-            className="w-16"
-          />
-          <UnitSelect
-            compact
-            value={draftRule.to_unit}
-            units={masterUnits}
-            onChange={(symbol) => updateDraftRule({ to_unit: symbol })}
-            className="min-w-[88px]"
-          />
+      {availableSuggestions.length > 0 ? (
+        <View className="gap-2">
+          <Text variant="label">Quick add (Australian standards)</Text>
+          <View className="flex-row flex-wrap gap-2">
+            {availableSuggestions.map((suggestion) => (
+              <Pressable
+                key={`${suggestion.from_unit}-${suggestion.to_unit}`}
+                accessibilityRole="button"
+                accessibilityLabel={`Add ${suggestion.label}`}
+                onPress={() => applySuggestion(suggestion)}
+                className="rounded-full border border-border bg-surface-secondary px-3 py-1.5 active:opacity-80 dark:border-border-dark dark:bg-surface-dark-secondary">
+                <Text className="text-sm">{suggestion.label}</Text>
+              </Pressable>
+            ))}
+          </View>
         </View>
-        {draftError ? (
-          <Text className="text-sm text-status-danger">{draftError}</Text>
-        ) : null}
-        <Button label="Add rule" onPress={commitDraftRule} />
-      </View>
+      ) : null}
 
-      {savedRules.length > 0 ? (
-        <View className="gap-1.5">
-          {savedRules.map((rule, index) => (
-            <View
-              key={`${rule.from_unit}-${rule.to_unit}-${index}`}
-              className={cn('flex-row items-center gap-2 py-2', fieldPanelClassName)}>
-              <Text className="flex-1 text-sm">{formatRuleLabel(rule)}</Text>
+      {drafts.map((draft, index) => (
+        <View key={`${draft.from_unit}-${draft.to_unit}-${index}`} className={cn('gap-2', fieldPanelClassName)}>
+          <View className="flex-row flex-wrap items-center gap-2">
+            <Text className="text-sm">1</Text>
+            <UnitSelect
+              compact
+              value={draft.from_unit}
+              units={masterUnits}
+              onChange={(symbol) => updateDraft(index, { from_unit: symbol })}
+              className="min-w-[88px]"
+            />
+            <Text className="text-sm">=</Text>
+            <Input
+              value={draft.factor}
+              onChangeText={(value) => updateDraft(index, { factor: value })}
+              keyboardType="decimal-pad"
+              placeholder="12"
+              className="w-16"
+            />
+            <UnitSelect
+              compact
+              value={draft.to_unit}
+              units={masterUnits}
+              onChange={(symbol) => updateDraft(index, { to_unit: symbol })}
+              className="min-w-[88px]"
+            />
+            {drafts.length > 1 ? (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Remove ${formatRuleLabel(rule)}`}
-                onPress={() => removeRule(index)}
+                accessibilityLabel="Remove conversion rule"
+                onPress={() => removeDraft(index)}
                 className="p-1">
                 <Ionicons name="close-circle" size={22} color="#DC2626" />
               </Pressable>
-            </View>
-          ))}
+            ) : null}
+          </View>
         </View>
-      ) : (
-        <Text variant="caption">No conversion rules added yet.</Text>
-      )}
+      ))}
+
+      {!hasFilledDraft ? <Text variant="caption">No conversion rules added yet.</Text> : null}
+
+      {saveError ? <Text className="text-sm text-status-danger">{saveError}</Text> : null}
 
       <View className="flex-row flex-wrap gap-3">
+        <Button label="Add rule" variant="secondary" onPress={addDraft} />
         <Button
           label={isSaving ? 'Saving...' : 'Save conversions'}
           onPress={() => void handleSave()}
