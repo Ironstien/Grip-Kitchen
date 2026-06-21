@@ -5,6 +5,8 @@ export { EmptyState } from '@/components/ui/EmptyState';
 export { IconButton } from '@/components/ui/IconButton';
 export { Input } from '@/components/ui/Input';
 export { Select } from '@/components/ui/Select';
+export { FieldDropdownPanel, useFieldDropdown } from '@/components/ui/FieldDropdown';
+export type { FieldAnchorRect } from '@/components/ui/FieldDropdown';
 export { AutocompleteInput } from '@/components/ui/AutocompleteInput';
 export type { AutocompleteOption } from '@/components/ui/AutocompleteInput';
 export { Heading, Text } from '@/components/ui/Text';

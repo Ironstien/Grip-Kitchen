@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { Modal, Pressable, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 
+import { FieldDropdownPanel, useFieldDropdown } from '@/components/ui/FieldDropdown';
 import { Text } from '@/components/ui/Text';
 import { cn } from '@/lib/cn';
 import { fieldSurfaceClassName } from '@/lib/fieldStyles';
@@ -24,22 +24,29 @@ export function Select({
   className,
   disabled = false,
 }: SelectProps) {
-  const [open, setOpen] = useState(false);
+  const { anchorRef, open, anchor, openDropdown, close } = useFieldDropdown();
+
+  const handleOpen = () => {
+    if (disabled || options.length === 0) {
+      return;
+    }
+    openDropdown();
+  };
 
   const handleSelect = (option: string) => {
     onChange(option);
-    setOpen(false);
+    close();
   };
 
   return (
-    <View className={className}>
+    <View ref={anchorRef} collapsable={false} className={className}>
       {label ? (
         <Text variant="label" className="mb-1">
           {label}
         </Text>
       ) : null}
       <Pressable
-        onPress={() => setOpen(true)}
+        onPress={handleOpen}
         disabled={disabled || options.length === 0}
         className={cn(
           'min-h-[32px] flex-row items-center justify-between px-2 py-1',
@@ -56,38 +63,27 @@ export function Select({
         </Text>
       </Pressable>
 
-      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <View className="flex-1 justify-end bg-black/40">
-          <Pressable className="absolute inset-0" onPress={() => setOpen(false)} />
-          <View className="max-h-[70%] rounded-t-card border border-border bg-surface p-3 dark:border-border-dark dark:bg-surface-dark">
-            {label ? <Text className="mb-3 font-semibold">{label}</Text> : null}
-            <ScrollView keyboardShouldPersistTaps="handled">
-              {options.map((option) => {
-                const selected = option === value;
+      <FieldDropdownPanel visible={open} anchor={anchor} onClose={close}>
+        <ScrollView keyboardShouldPersistTaps="handled" nestedScrollEnabled>
+          {options.map((option) => {
+            const selected = option === value;
 
-                return (
-                  <Pressable
-                    key={option}
-                    onPress={() => handleSelect(option)}
-                    className={cn(
-                      'mb-1 rounded border px-2 py-2',
-                      selected
-                        ? 'border-brand bg-brand/10 dark:border-brand-dark'
-                        : 'border-border dark:border-border-dark',
-                    )}>
-                    <Text className={cn('text-sm', selected && 'font-medium text-brand dark:text-brand-dark')}>
-                      {option}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-            <Pressable onPress={() => setOpen(false)} className="mt-1 py-2">
-              <Text className="text-center text-sm text-brand dark:text-brand-dark">Cancel</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
+            return (
+              <Pressable
+                key={option}
+                onPress={() => handleSelect(option)}
+                className={cn(
+                  'border-b border-border px-2 py-2 dark:border-border-dark',
+                  selected && 'bg-brand/10 dark:bg-brand-dark/10',
+                )}>
+                <Text className={cn('text-sm', selected && 'font-medium text-brand dark:text-brand-dark')}>
+                  {option}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </FieldDropdownPanel>
     </View>
   );
 }

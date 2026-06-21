@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, View } from 'react-native';
+import { useMemo } from 'react';
+import { Pressable, ScrollView, View } from 'react-native';
 
+import { FieldDropdownPanel, useFieldDropdown } from '@/components/ui/FieldDropdown';
 import { Text } from '@/components/ui/Text';
 import { useUserCategories } from '@/hooks/useUserCategories';
 import { cn } from '@/lib/cn';
@@ -27,7 +28,7 @@ export function CategorySelect({
   compact = true,
 }: CategorySelectProps) {
   const { data: fetchedCategories = [], isLoading } = useUserCategories();
-  const [open, setOpen] = useState(false);
+  const { anchorRef, open, anchor, openDropdown, close } = useFieldDropdown({ minWidth: 220 });
 
   const categories = useMemo(() => {
     const source = categoriesProp ?? fetchedCategories ?? [];
@@ -50,18 +51,18 @@ export function CategorySelect({
 
   const handleSelect = (name: string) => {
     onChange(name);
-    setOpen(false);
+    close();
   };
 
   return (
-    <View className={className}>
+    <View ref={anchorRef} collapsable={false} className={className}>
       {label && (
         <Text variant="label" className="mb-2">
           {label}
         </Text>
       )}
       <Pressable
-        onPress={() => setOpen(true)}
+        onPress={() => categories.length > 0 && openDropdown()}
         disabled={categories.length === 0}
         className={cn(
           'flex-row items-center justify-between min-h-[32px] px-2 py-1',
@@ -84,37 +85,26 @@ export function CategorySelect({
         </Text>
       </Pressable>
 
-      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <View className="flex-1 justify-end bg-black/40">
-          <Pressable className="absolute inset-0" onPress={() => setOpen(false)} />
-          <View className="max-h-[70%] rounded-t-card border border-border bg-surface p-4 dark:border-border-dark dark:bg-surface-dark">
-            <Text className="mb-4 text-lg font-semibold">Master Category List</Text>
-            <ScrollView keyboardShouldPersistTaps="handled">
-              {categories.map((category) => {
-                const isSelected = category.name === value;
-                return (
-                  <Pressable
-                    key={category.id}
-                    onPress={() => handleSelect(category.name)}
-                    className={cn(
-                      'mb-2 rounded-button border px-3 py-3',
-                      isSelected
-                        ? 'border-brand bg-brand/10 dark:border-brand-dark'
-                        : 'border-border dark:border-border-dark',
-                    )}>
-                    <Text className={isSelected ? 'font-medium text-brand dark:text-brand-dark' : ''}>
-                      {category.name}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-            <Pressable onPress={() => setOpen(false)} className="mt-2 py-3">
-              <Text className="text-center text-brand dark:text-brand-dark">Cancel</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
+      <FieldDropdownPanel visible={open} anchor={anchor} onClose={close} minWidth={220} maxHeight={360}>
+        <ScrollView keyboardShouldPersistTaps="handled" nestedScrollEnabled>
+          {categories.map((category) => {
+            const isSelected = category.name === value;
+            return (
+              <Pressable
+                key={category.id}
+                onPress={() => handleSelect(category.name)}
+                className={cn(
+                  'border-b border-border px-2 py-2 dark:border-border-dark',
+                  isSelected && 'bg-brand/10 dark:bg-brand-dark/10',
+                )}>
+                <Text className={cn('text-sm', isSelected && 'font-medium text-brand dark:text-brand-dark')}>
+                  {category.name}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </FieldDropdownPanel>
     </View>
   );
 }
