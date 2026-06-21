@@ -3,6 +3,7 @@ import Constants from 'expo-constants';
 import { Href, usePathname, useRouter } from 'expo-router';
 import { Pressable, View } from 'react-native';
 
+import { NotesSection } from '@/components/notes/NotesSection';
 import { Text } from '@/components/ui/Text';
 import { NAV_SIDEBAR, SIDEBAR_WIDTH } from '@/constants/theme';
 
@@ -101,36 +102,40 @@ export function DesktopSidebar() {
         </Text>
       </View>
 
-      <View className="flex-1 px-2 py-3">
-        {items.map((item) => {
-          const active = isActive(pathname, item);
-          return (
-            <Pressable
-              key={item.label}
-              accessibilityRole="button"
-              onPress={() => router.push(item.href)}
-              className="mb-0.5 flex-row items-center rounded-card py-2 pl-2 pr-2"
-              style={{
-                backgroundColor: active ? NAV_SIDEBAR.backgroundActive : 'transparent',
-                borderLeftWidth: active ? 3 : 0,
-                borderLeftColor: active ? NAV_SIDEBAR.accent : 'transparent',
-              }}>
-              <Ionicons
-                name={item.icon}
-                size={16}
-                color={active ? NAV_SIDEBAR.accent : NAV_SIDEBAR.textMuted}
-              />
-              <Text
-                className="ml-2.5 text-xs"
+      <View className="min-h-0 flex-1">
+        <View className="px-2 py-3">
+          {items.map((item) => {
+            const active = isActive(pathname, item);
+            return (
+              <Pressable
+                key={item.label}
+                accessibilityRole="button"
+                onPress={() => router.push(item.href)}
+                className="mb-0.5 flex-row items-center rounded-card py-2 pl-2 pr-2"
                 style={{
-                  color: active ? NAV_SIDEBAR.text : NAV_SIDEBAR.textMuted,
-                  fontWeight: active ? '600' : '400',
+                  backgroundColor: active ? NAV_SIDEBAR.backgroundActive : 'transparent',
+                  borderLeftWidth: active ? 3 : 0,
+                  borderLeftColor: active ? NAV_SIDEBAR.accent : 'transparent',
                 }}>
-                {item.label}
-              </Text>
-            </Pressable>
-          );
-        })}
+                <Ionicons
+                  name={item.icon}
+                  size={16}
+                  color={active ? NAV_SIDEBAR.accent : NAV_SIDEBAR.textMuted}
+                />
+                <Text
+                  className="ml-2.5 text-xs"
+                  style={{
+                    color: active ? NAV_SIDEBAR.text : NAV_SIDEBAR.textMuted,
+                    fontWeight: active ? '600' : '400',
+                  }}>
+                  {item.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        <NotesSection variant="sidebar" />
       </View>
 
       <View
