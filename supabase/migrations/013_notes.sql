@@ -15,3 +15,5 @@ CREATE POLICY "Authenticated users manage shared notes"
   ON public.notes FOR ALL
   USING (auth.uid() IS NOT NULL)
   WITH CHECK (auth.uid() IS NOT NULL);
+
+NOTIFY pgrst, 'reload schema';

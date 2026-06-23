@@ -35,6 +35,10 @@ export function formatErrorMessage(error: unknown, fallback = 'Something went wr
         return 'Database is missing the categories table. In Supabase → SQL Editor, run supabase/migrations/007_user_categories.sql';
       }
 
+      if (pgError.message?.includes('notes')) {
+        return 'Database is missing the notes table. In Supabase → SQL Editor, run supabase/migrations/013_notes.sql';
+      }
+
       return 'Database is missing a required table. In Supabase → SQL Editor, run the latest migrations from supabase/migrations/';
     }
 

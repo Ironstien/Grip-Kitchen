@@ -6,10 +6,12 @@ import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useNotes } from '@/hooks/useNotes';
+import { formatErrorMessage } from '@/lib/errors';
 
 export function NotesSection() {
   const { palette } = useTheme();
-  const { notes, isLoading, isError, isAdding, addNote, deleteNote } = useNotes();
+  const { notes, isLoading, isError, errorMessage, isAdding, addNote, deleteNote, refetch } =
+    useNotes();
   const [draft, setDraft] = useState('');
 
   const handleAdd = async () => {
@@ -20,7 +22,7 @@ export function NotesSection() {
     }
 
     if (draft.trim()) {
-      Alert.alert('Could not add note', 'Please try again.');
+      Alert.alert('Could not add note', errorMessage ?? 'Please try again.');
     }
   };
 
@@ -53,9 +55,13 @@ export function NotesSection() {
       {isLoading ? (
         <ActivityIndicator className="mt-4" />
       ) : isError ? (
-        <Text variant="bodySecondary" className="mt-4">
-          Could not load notes. Pull to refresh or try again later.
-        </Text>
+        <View className="mt-4 gap-3">
+          <Text variant="bodySecondary">
+            {errorMessage ??
+              formatErrorMessage(null, 'Could not load notes. Please try again later.')}
+          </Text>
+          <Button label="Retry" variant="secondary" onPress={() => void refetch()} className="self-start" />
+        </View>
       ) : (
         <ScrollView
           className="mt-4 flex-1"

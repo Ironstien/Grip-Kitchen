@@ -1,14 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
+import { useAuth } from '@/contexts/AuthContext';
 import { queryKeys } from '@/lib/queryKeys';
 import { createNote, deleteNote as deleteNoteService, fetchNotes } from '@/lib/services/notes';
 
 export function useNotes() {
+  const { session } = useAuth();
   const queryClient = useQueryClient();
-  const { data: notes = [], isLoading, isError } = useQuery({
+  const { data: notes = [], isLoading, isError, error, refetch, isRefetching } = useQuery({
     queryKey: queryKeys.notes,
     queryFn: fetchNotes,
+    enabled: Boolean(session),
   });
 
   const invalidate = useCallback(() => {
@@ -51,11 +54,13 @@ export function useNotes() {
 
   return {
     notes,
-    isLoading,
+    isLoading: isLoading || isRefetching,
     isError,
+    errorMessage: error instanceof Error ? error.message : null,
     isAdding: addMutation.isPending,
     isDeleting: deleteMutation.isPending,
     addNote,
     deleteNote,
+    refetch,
   };
 }
