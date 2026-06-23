@@ -13,6 +13,7 @@ export function QueryProvider({ children }: QueryProviderProps) {
           queries: {
             staleTime: 30_000,
             retry: 1,
+            refetchOnWindowFocus: true,
           },
         },
       }),

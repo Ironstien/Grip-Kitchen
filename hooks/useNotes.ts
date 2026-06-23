@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { queryKeys } from '@/lib/queryKeys';
 import { createNote, deleteNote as deleteNoteService, fetchNotes } from '@/lib/services/notes';
+import { supabase } from '@/lib/supabase';
 
 export function useNotes() {
   const { session } = useAuth();
@@ -12,11 +13,34 @@ export function useNotes() {
     queryKey: queryKeys.notes,
     queryFn: fetchNotes,
     enabled: Boolean(session),
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   const invalidate = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: queryKeys.notes });
   }, [queryClient]);
+
+  useEffect(() => {
+    if (!session) {
+      return;
+    }
+
+    const channel = supabase
+      .channel('shared-notes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'notes' },
+        () => {
+          invalidate();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [invalidate, session]);
 
   const addMutation = useMutation({
     mutationFn: createNote,

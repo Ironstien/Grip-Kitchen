@@ -55,9 +55,16 @@ Without the ingredients table, Settings → Master list shows *"Could not find t
 
 ### Shared household access
 
-Run `supabase/migrations/012_shared_household_access.sql` so every signed-in Google account sees and can edit the same pantry, ingredients, recipes, planner, and shopping lists. Without this migration, each user only sees their own rows.
+Run **`supabase/migrations/014_ensure_shared_household.sql`** in the Supabase SQL Editor. This is the single script that:
 
-Run `supabase/migrations/013_notes.sql` for shared household notes (stored in Supabase instead of on each device).
+- Creates the shared `notes` table (if missing)
+- Removes all old per-user security policies
+- Applies shared access so every signed-in Google account sees the same data
+- Enables live note sync between devices
+
+Safe to re-run if sharing still is not working.
+
+Older migrations `012_shared_household_access.sql` and `013_notes.sql` are superseded by `014` — you only need to run `014`.
 
 ## 4. Enable Google OAuth
 
@@ -104,14 +111,14 @@ npm run web
 
 ## 6. Verify shared household access
 
-After running migration `012_shared_household_access.sql`, any signed-in user should see the same data.
+After running migration `014_ensure_shared_household.sql`, any signed-in user should see the same data.
 
-1. Sign in with your main account and confirm ingredients, pantry, and recipes load.
+1. Sign in with your main account and confirm ingredients, pantry, recipes, and notes load.
 2. Sign out, then sign in with a second Google account (e.g. your partner's phone).
-3. The same ingredients, pantry items, and recipes should appear.
-4. Add or edit something on the second account — it should show up when you sign back in on the first account.
+3. The same ingredients, pantry items, recipes, and notes should appear.
+4. Add a note on one phone — it should appear on the other within a few seconds.
 
-If the second account still sees an empty app, re-run `012_shared_household_access.sql` in the Supabase SQL Editor and confirm both users completed Google sign-in (a row exists in `public.users` for each).
+If the second account still sees an empty app, re-run `014_ensure_shared_household.sql` in the Supabase SQL Editor and confirm both users completed Google sign-in (a row exists in `public.users` for each).
 
 ## 7. Troubleshooting
 
