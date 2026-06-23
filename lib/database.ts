@@ -28,6 +28,7 @@ export const tables = {
   shoppingList: 'shopping_list',
   wasteLog: 'waste_log',
   barcodeCache: 'barcode_cache',
+  notes: 'notes',
 } as const;
 
 export async function getCurrentUserProfile(): Promise<UserProfile | null> {

@@ -11,4 +11,5 @@ export const queryKeys = {
   mealPlan: (start: string, end: string) => ['mealPlan', start, end] as const,
   recipes: (filters?: Record<string, unknown>) => ['recipes', filters ?? {}] as const,
   recipe: (id: string) => ['recipes', id] as const,
+  notes: ['notes'] as const,
 };

@@ -53,6 +53,12 @@ That script is safe to re-run and finishes any incomplete steps.
 
 Without the ingredients table, Settings → Master list shows *"Could not find the table public.ingredients"*.
 
+### Shared household access
+
+Run `supabase/migrations/012_shared_household_access.sql` so every signed-in Google account sees and can edit the same pantry, ingredients, recipes, planner, and shopping lists. Without this migration, each user only sees their own rows.
+
+Run `supabase/migrations/013_notes.sql` for shared household notes (stored in Supabase instead of on each device).
+
 ## 4. Enable Google OAuth
 
 ### Supabase
@@ -96,51 +102,16 @@ npm run web
 5. Open **Settings** and confirm your email appears.
 6. Click **Sign out** and confirm you return to login.
 
-## 6. Test RLS isolation with two accounts
+## 6. Verify shared household access
 
-Row Level Security ensures each user only sees their own data.
+After running migration `012_shared_household_access.sql`, any signed-in user should see the same data.
 
-### Setup
+1. Sign in with your main account and confirm ingredients, pantry, and recipes load.
+2. Sign out, then sign in with a second Google account (e.g. your partner's phone).
+3. The same ingredients, pantry items, and recipes should appear.
+4. Add or edit something on the second account — it should show up when you sign back in on the first account.
 
-1. Sign in with Google account A.
-2. In Supabase SQL Editor, insert a test inventory row for account A:
-
-```sql
-INSERT INTO public.inventory (user_id, name, category, quantity, unit_of_measure)
-SELECT id, 'Account A Milk', 'Dairy', 1, 'L'
-FROM public.users
-LIMIT 1;
-```
-
-3. Sign out in the app.
-4. Sign in with Google account B.
-5. Insert a different row for account B using the same SQL with a different name.
-
-### Verify in the app (Phase 3+)
-
-Once inventory UI exists, each account should only see its own items.
-
-### Verify in Supabase SQL Editor
-
-Run as the authenticated user via the app, or test policies directly:
-
-```sql
--- Should only return rows where user_id = auth.uid()
-SELECT * FROM public.inventory;
-```
-
-With account A signed in, account B's rows must not appear.
-
-### Quick API test from browser console
-
-While signed in as account A:
-
-```js
-const { data, error } = await supabase.from('inventory').select('*');
-console.log(data, error);
-```
-
-Sign out, sign in as account B, run again — results must differ and never overlap.
+If the second account still sees an empty app, re-run `012_shared_household_access.sql` in the Supabase SQL Editor and confirm both users completed Google sign-in (a row exists in `public.users` for each).
 
 ## 7. Troubleshooting
 

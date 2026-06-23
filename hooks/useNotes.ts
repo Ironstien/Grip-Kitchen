@@ -1,94 +1,60 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useCallback, useEffect, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback } from 'react';
 
-import { useAuth } from '@/contexts/AuthContext';
-
-export type Note = {
-  id: string;
-  text: string;
-  createdAt: string;
-};
-
-function getNotesStorageKey(userId: string | undefined) {
-  return userId ? `grip-kitchen-notes-${userId}` : 'grip-kitchen-notes';
-}
-
-function createNoteId() {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-}
+import { queryKeys } from '@/lib/queryKeys';
+import { createNote, deleteNote as deleteNoteService, fetchNotes } from '@/lib/services/notes';
 
 export function useNotes() {
-  const { user } = useAuth();
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [hydrated, setHydrated] = useState(false);
+  const queryClient = useQueryClient();
+  const { data: notes = [], isLoading, isError } = useQuery({
+    queryKey: queryKeys.notes,
+    queryFn: fetchNotes,
+  });
 
-  useEffect(() => {
-    let cancelled = false;
-    setHydrated(false);
-    setNotes([]);
+  const invalidate = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: queryKeys.notes });
+  }, [queryClient]);
 
-    AsyncStorage.getItem(getNotesStorageKey(user?.id))
-      .then((stored) => {
-        if (cancelled || !stored) {
-          return;
-        }
+  const addMutation = useMutation({
+    mutationFn: createNote,
+    onSuccess: invalidate,
+  });
 
-        const parsed = JSON.parse(stored) as Note[];
-        if (Array.isArray(parsed)) {
-          setNotes(parsed);
-        }
-      })
-      .catch((error) => {
-        console.error('Failed to load notes', error);
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setHydrated(true);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.id]);
-
-  const persistNotes = useCallback(
-    (nextNotes: Note[]) => {
-      setNotes(nextNotes);
-      void AsyncStorage.setItem(getNotesStorageKey(user?.id), JSON.stringify(nextNotes));
-    },
-    [user?.id],
-  );
+  const deleteMutation = useMutation({
+    mutationFn: deleteNoteService,
+    onSuccess: invalidate,
+  });
 
   const addNote = useCallback(
-    (text: string) => {
+    async (text: string) => {
       const trimmed = text.trim();
       if (!trimmed) {
         return false;
       }
 
-      const nextNote: Note = {
-        id: createNoteId(),
-        text: trimmed,
-        createdAt: new Date().toISOString(),
-      };
-
-      persistNotes([nextNote, ...notes]);
-      return true;
+      try {
+        await addMutation.mutateAsync(trimmed);
+        return true;
+      } catch {
+        return false;
+      }
     },
-    [notes, persistNotes],
+    [addMutation],
   );
 
   const deleteNote = useCallback(
     (id: string) => {
-      persistNotes(notes.filter((note) => note.id !== id));
+      deleteMutation.mutate(id);
     },
-    [notes, persistNotes],
+    [deleteMutation],
   );
 
   return {
     notes,
-    hydrated,
+    isLoading,
+    isError,
+    isAdding: addMutation.isPending,
+    isDeleting: deleteMutation.isPending,
     addNote,
     deleteNote,
   };

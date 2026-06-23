@@ -562,6 +562,35 @@ export type Database = {
           },
         ];
       };
+      notes: {
+        Row: {
+          id: string;
+          user_id: string;
+          text: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          text: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          text?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'notes_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -597,3 +626,4 @@ export type ShoppingListSession = Tables<'shopping_lists'>;
 export type ShoppingListItem = Tables<'shopping_list'>;
 export type WasteLogEntry = Tables<'waste_log'>;
 export type BarcodeCacheEntry = Tables<'barcode_cache'>;
+export type Note = Tables<'notes'>;
