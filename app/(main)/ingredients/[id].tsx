@@ -43,6 +43,9 @@ export default function IngredientDetailScreen() {
                 router.back();
               }
             }}
+            onDuplicated={(newId) => {
+              router.replace(`/(main)/ingredients/${newId}` as import('expo-router').Href);
+            }}
             onCancel={() => router.back()}
           />
         </ScrollView>

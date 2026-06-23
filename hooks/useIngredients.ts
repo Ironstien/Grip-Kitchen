@@ -4,6 +4,7 @@ import { queryKeys } from '@/lib/queryKeys';
 import {
   createIngredient,
   deleteIngredient,
+  duplicateIngredient,
   fetchIngredient,
   fetchIngredients,
   updateIngredient,
@@ -52,6 +53,12 @@ export function useIngredientMutations() {
     onSuccess: invalidate,
   });
 
+  const duplicate = useMutation({
+    mutationFn: ({ sourceId, newName }: { sourceId: string; newName: string }) =>
+      duplicateIngredient(sourceId, newName),
+    onSuccess: invalidate,
+  });
+
   const uploadImage = useMutation({
     mutationFn: ({
       ingredientId,
@@ -65,5 +72,5 @@ export function useIngredientMutations() {
     onSuccess: invalidate,
   });
 
-  return { create, update, remove, uploadImage };
+  return { create, update, remove, duplicate, uploadImage };
 }

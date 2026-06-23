@@ -1,5 +1,6 @@
 import { ensureUserProfile, tables } from '@/lib/database';
 import { toError } from '@/lib/errors';
+import { replaceIngredientConversions } from '@/lib/services/ingredientConversions';
 import { syncLegacyIngredientFields } from '@/lib/ingredients';
 import { createInventoryItem } from '@/lib/services/inventory';
 import { ensureDefaultStorageLocations } from '@/lib/services/storageLocations';
@@ -180,6 +181,50 @@ export async function deleteIngredient(id: string): Promise<void> {
   if (error) {
     throw toError(error, 'Could not delete ingredient.');
   }
+}
+
+export async function duplicateIngredient(
+  sourceId: string,
+  newName: string,
+): Promise<IngredientWithConversions> {
+  const trimmedName = newName.trim();
+  if (!trimmedName) {
+    throw new Error('Enter a store name for the duplicate ingredient.');
+  }
+
+  const source = await fetchIngredient(sourceId);
+  if (!source) {
+    throw new Error('Ingredient not found');
+  }
+
+  const duplicate = await createIngredient({
+    name: trimmedName,
+    display_name: source.display_name,
+    category: source.category,
+    purchase_price: source.purchase_price,
+    purchase_qty: source.purchase_qty,
+    purchase_unit: source.purchase_unit,
+    stock_unit: source.stock_unit,
+    image_url: source.image_url,
+  });
+
+  if (source.ingredient_conversions.length > 0) {
+    await replaceIngredientConversions(
+      duplicate.id,
+      source.ingredient_conversions.map(({ from_unit, to_unit, factor }) => ({
+        from_unit,
+        to_unit,
+        factor,
+      })),
+    );
+  }
+
+  const saved = await fetchIngredient(duplicate.id);
+  if (!saved) {
+    throw new Error('Could not load duplicated ingredient.');
+  }
+
+  return saved;
 }
 
 export async function uploadIngredientImage(

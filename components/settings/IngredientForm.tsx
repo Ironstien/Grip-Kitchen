@@ -5,7 +5,7 @@ import type { DetailAction } from '@/components/layout/DetailPaneHeader';
 import { IngredientConversionsEditor } from '@/components/settings/IngredientConversionsEditor';
 import { CategorySelect } from '@/components/ui/CategorySelect';
 import { ClipboardImagePicker } from '@/components/ui/ClipboardImagePicker';
-import { FormField, ConfirmModal } from '@/components/ui/Form';
+import { FormField, ConfirmModal, PromptModal } from '@/components/ui/Form';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { UnitSelect } from '@/components/ui/UnitSelect';
@@ -29,6 +29,7 @@ type IngredientFormProps = {
   ingredient?: IngredientWithConversions | null;
   onSaved: (savedId?: string) => void;
   onCancel: () => void;
+  onDuplicated?: (newId: string) => void;
   onHeaderActionsChange?: (actions: DetailAction[]) => void;
 };
 
@@ -36,10 +37,11 @@ export function IngredientForm({
   ingredient,
   onSaved,
   onCancel,
+  onDuplicated,
   onHeaderActionsChange,
 }: IngredientFormProps) {
   const { isDesktop } = useResponsive();
-  const { create, update, remove, uploadImage } = useIngredientMutations();
+  const { create, update, remove, duplicate, uploadImage } = useIngredientMutations();
   const { data: masterUnits = [] } = useUserUnits();
   const { data: masterCategories = [] } = useUserCategories();
 
@@ -54,7 +56,9 @@ export function IngredientForm({
   const [imageMimeType, setImageMimeType] = useState<string | undefined>();
   const [isSaving, setIsSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showDuplicatePrompt, setShowDuplicatePrompt] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isDuplicating, setIsDuplicating] = useState(false);
 
   useEffect(() => {
     setName(ingredient?.name ?? '');
@@ -215,12 +219,45 @@ export function IngredientForm({
     }
   }, [ingredient, onCancel, remove]);
 
+  const handleDuplicate = useCallback(() => {
+    if (!ingredient) {
+      return;
+    }
+
+    setShowDuplicatePrompt(true);
+  }, [ingredient]);
+
+  const confirmDuplicate = useCallback(
+    async (newName: string) => {
+      if (!ingredient) {
+        return;
+      }
+
+      try {
+        setIsDuplicating(true);
+        const saved = await duplicate.mutateAsync({
+          sourceId: ingredient.id,
+          newName,
+        });
+        setShowDuplicatePrompt(false);
+        onDuplicated?.(saved.id);
+      } catch (error) {
+        Alert.alert('Duplicate failed', formatErrorMessage(error, 'Duplicate failed.'));
+      } finally {
+        setIsDuplicating(false);
+      }
+    },
+    [duplicate, ingredient, onDuplicated],
+  );
+
   const handleSaveRef = useRef(handleSave);
   const handleDeleteRef = useRef(handleDelete);
+  const handleDuplicateRef = useRef(handleDuplicate);
   const onCancelRef = useRef(onCancel);
 
   handleSaveRef.current = handleSave;
   handleDeleteRef.current = handleDelete;
+  handleDuplicateRef.current = handleDuplicate;
   onCancelRef.current = onCancel;
 
   useEffect(() => {
@@ -231,6 +268,12 @@ export function IngredientForm({
     const actions: DetailAction[] = [];
 
     if (ingredient) {
+      actions.push({
+        label: 'Duplicate ingredient',
+        variant: 'ghost',
+        onPress: () => handleDuplicateRef.current(),
+        disabled: isDuplicating,
+      });
       actions.push({
         label: 'Delete ingredient',
         variant: 'ghost',
@@ -248,11 +291,11 @@ export function IngredientForm({
       label: isSaving ? 'Saving...' : ingredient ? 'Save changes' : 'Add ingredient',
       variant: 'primary',
       onPress: () => void handleSaveRef.current(),
-      disabled: isSaving,
+      disabled: isSaving || isDuplicating,
     });
 
     onHeaderActionsChange(actions);
-  }, [ingredient?.id, isDesktop, isSaving, onHeaderActionsChange]);
+  }, [ingredient?.id, isDesktop, isDuplicating, isSaving, onHeaderActionsChange]);
 
   const previewSummary =
     Number(purchaseQty) > 0
@@ -446,7 +489,15 @@ export function IngredientForm({
           </View>
 
           {ingredient ? (
-            <Button label="Delete ingredient" variant="ghost" onPress={handleDelete} />
+            <>
+              <Button
+                label="Duplicate ingredient"
+                variant="ghost"
+                onPress={handleDuplicate}
+                disabled={isDuplicating}
+              />
+              <Button label="Delete ingredient" variant="ghost" onPress={handleDelete} />
+            </>
           ) : null}
         </View>
       ) : null}
@@ -464,6 +515,23 @@ export function IngredientForm({
         onCancel={() => {
           if (!isDeleting) {
             setShowDeleteConfirm(false);
+          }
+        }}
+      />
+
+      <PromptModal
+        visible={showDuplicatePrompt}
+        title="Duplicate ingredient"
+        message="Enter a store name for the copy. Purchase details, units, photo, and conversions will be copied."
+        label="Store name"
+        initialValue={ingredient ? `${ingredient.name} (copy)` : ''}
+        placeholder="Exact name from Woolworths receipt"
+        confirmLabel="Duplicate"
+        isSubmitting={isDuplicating}
+        onConfirm={(newName) => void confirmDuplicate(newName)}
+        onCancel={() => {
+          if (!isDuplicating) {
+            setShowDuplicatePrompt(false);
           }
         }}
       />

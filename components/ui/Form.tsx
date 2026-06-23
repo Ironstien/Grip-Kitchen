@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { Modal, Pressable, ScrollView, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import { Text } from '@/components/ui/Text';
 import { cn } from '@/lib/cn';
 import { fieldSurfaceClassName } from '@/lib/fieldStyles';
@@ -101,6 +103,87 @@ export function ConfirmModal({
           <View className="flex-row gap-2">
             <Button label="Cancel" variant="ghost" onPress={onCancel} className="flex-1" />
             <Button label={confirmLabel} onPress={onConfirm} className="flex-1" />
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+type PromptModalProps = {
+  visible: boolean;
+  title: string;
+  message?: string;
+  label?: string;
+  initialValue?: string;
+  placeholder?: string;
+  confirmLabel?: string;
+  onConfirm: (value: string) => void;
+  onCancel: () => void;
+  isSubmitting?: boolean;
+};
+
+export function PromptModal({
+  visible,
+  title,
+  message,
+  label,
+  initialValue = '',
+  placeholder,
+  confirmLabel = 'Save',
+  onConfirm,
+  onCancel,
+  isSubmitting = false,
+}: PromptModalProps) {
+  const [value, setValue] = useState(initialValue);
+
+  useEffect(() => {
+    if (visible) {
+      setValue(initialValue);
+    }
+  }, [initialValue, visible]);
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
+      <View className="flex-1 items-center justify-center bg-black/40 px-6">
+        <View className="w-full max-w-md rounded-card border border-border bg-surface p-3 dark:border-border-dark dark:bg-surface-dark">
+          <Text className="mb-1 text-base font-semibold">{title}</Text>
+          {message ? (
+            <Text variant="bodySecondary" className="mb-3">
+              {message}
+            </Text>
+          ) : null}
+          {label ? (
+            <Text variant="label" className="mb-1">
+              {label}
+            </Text>
+          ) : null}
+          <Input
+            value={value}
+            onChangeText={setValue}
+            placeholder={placeholder}
+            autoFocus
+            editable={!isSubmitting}
+            onSubmitEditing={() => {
+              if (value.trim() && !isSubmitting) {
+                onConfirm(value);
+              }
+            }}
+          />
+          <View className="mt-3 flex-row gap-2">
+            <Button
+              label="Cancel"
+              variant="ghost"
+              onPress={onCancel}
+              disabled={isSubmitting}
+              className="flex-1"
+            />
+            <Button
+              label={isSubmitting ? 'Saving...' : confirmLabel}
+              onPress={() => onConfirm(value)}
+              disabled={!value.trim() || isSubmitting}
+              className="flex-1"
+            />
           </View>
         </View>
       </View>
