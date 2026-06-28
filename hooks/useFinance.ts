@@ -17,6 +17,49 @@ import {
 } from '@/lib/services/finance';
 import { supabase } from '@/lib/supabase';
 
+/** Call once on the Finance screen — not inside child tabs that also use useFinance(). */
+export function useFinanceRealtimeSync() {
+  const { session } = useAuth();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!session) {
+      return;
+    }
+
+    const invalidateSettings = () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.financeSettings });
+    };
+
+    const invalidateExpenses = () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.recurringExpenses });
+    };
+
+    const settingsChannel = supabase
+      .channel('shared-finance-settings')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'finance_settings' },
+        invalidateSettings,
+      )
+      .subscribe();
+
+    const expensesChannel = supabase
+      .channel('shared-finance-expenses')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'recurring_expenses' },
+        invalidateExpenses,
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(settingsChannel);
+      void supabase.removeChannel(expensesChannel);
+    };
+  }, [queryClient, session]);
+}
+
 export function useFinance() {
   const { session } = useAuth();
   const queryClient = useQueryClient();
@@ -44,30 +87,6 @@ export function useFinance() {
     staleTime: 0,
     refetchOnWindowFocus: true,
   });
-
-  useEffect(() => {
-    if (!session) {
-      return;
-    }
-
-    const channel = supabase
-      .channel('shared-finance')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'finance_settings' },
-        () => invalidateSettings(),
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'recurring_expenses' },
-        () => invalidateExpenses(),
-      )
-      .subscribe();
-
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [invalidateExpenses, invalidateSettings, session]);
 
   const saveSettingsMutation = useMutation({
     mutationFn: upsertFinanceSettings,
