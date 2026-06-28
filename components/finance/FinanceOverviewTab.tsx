@@ -1,4 +1,5 @@
 import { ActivityIndicator, Alert, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
 
 import { ExpenseRow } from '@/components/finance/ExpenseRow';
 import { PaySummaryCard } from '@/components/finance/PaySummaryCard';
@@ -8,7 +9,6 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Text } from '@/components/ui/Text';
 import { useFinance } from '@/hooks/useFinance';
 import { formatErrorMessage } from '@/lib/errors';
-import { useState } from 'react';
 
 type FinanceOverviewTabProps = {
   onAddExpense: () => void;
@@ -27,6 +27,16 @@ export function FinanceOverviewTab({ onAddExpense, onEditExpense }: FinanceOverv
     saveSettings,
   } = useFinance();
   const [payModalVisible, setPayModalVisible] = useState(false);
+  const promptedForPayDate = useRef(false);
+
+  useEffect(() => {
+    if (isLoading || settings?.next_pay_date || promptedForPayDate.current) {
+      return;
+    }
+
+    promptedForPayDate.current = true;
+    setPayModalVisible(true);
+  }, [isLoading, settings?.next_pay_date]);
 
   const handleSavePaySettings = async (input: {
     pay_amount: number;
@@ -71,10 +81,17 @@ export function FinanceOverviewTab({ onAddExpense, onEditExpense }: FinanceOverv
       </View>
 
       {!hasPayDate ? (
-        <EmptyState
-          title="Set your pay date"
-          description="Add your next pay date to see which bills are due before you get paid."
-        />
+        <View className="gap-3">
+          <EmptyState
+            title="Set your pay date"
+            description="Pick your next fortnightly pay date to see which bills are due before you get paid."
+          />
+          <Button
+            label="Choose pay date"
+            onPress={() => setPayModalVisible(true)}
+            className="self-start"
+          />
+        </View>
       ) : payPeriod.dueBeforePay.length === 0 ? (
         <EmptyState
           title="No bills due"

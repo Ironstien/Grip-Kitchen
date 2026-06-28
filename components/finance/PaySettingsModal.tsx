@@ -18,6 +18,59 @@ type PaySettingsModalProps = {
   onCancel: () => void;
 };
 
+function DateField({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: Date | null;
+  onChange: (date: Date) => void;
+  disabled?: boolean;
+}) {
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const isoValue = value ? formatISODate(value) : '';
+
+  if (Platform.OS === 'web') {
+    return (
+      <Input
+        value={isoValue}
+        onChangeText={(text) => {
+          if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+            onChange(parseISODate(text));
+          }
+        }}
+        placeholder="YYYY-MM-DD"
+        editable={!disabled}
+        // @ts-expect-error web-only date input
+        type="date"
+      />
+    );
+  }
+
+  return (
+    <>
+      <Pressable
+        onPress={() => !disabled && setShowDatePicker(true)}
+        className="min-h-[32px] justify-center rounded-button border border-border px-2 dark:border-border-dark">
+        <Text>{value ? formatDisplayDate(value) : 'Select date'}</Text>
+      </Pressable>
+      {showDatePicker ? (
+        <DateTimePicker
+          value={value ?? new Date()}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={(_, date) => {
+            setShowDatePicker(Platform.OS === 'ios');
+            if (date) {
+              onChange(date);
+            }
+          }}
+        />
+      ) : null}
+    </>
+  );
+}
+
 export function PaySettingsModal({
   visible,
   settings,
@@ -27,7 +80,6 @@ export function PaySettingsModal({
 }: PaySettingsModalProps) {
   const [payAmount, setPayAmount] = useState('');
   const [nextPayDate, setNextPayDate] = useState<Date | null>(null);
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -38,15 +90,11 @@ export function PaySettingsModal({
     setPayAmount(settings?.pay_amount != null ? String(settings.pay_amount) : '');
     setNextPayDate(settings?.next_pay_date ? parseISODate(settings.next_pay_date) : null);
     setError(null);
-    setShowDatePicker(false);
   }, [settings, visible]);
 
   const handleSave = async () => {
-    const amount = parseAmountInput(payAmount);
-    if (amount == null) {
-      setError('Enter a valid take-home pay amount.');
-      return;
-    }
+    const parsedAmount = parseAmountInput(payAmount);
+    const pay_amount = parsedAmount ?? 0;
 
     if (!nextPayDate) {
       setError('Choose your next pay date.');
@@ -55,7 +103,7 @@ export function PaySettingsModal({
 
     setError(null);
     await onSave({
-      pay_amount: amount,
+      pay_amount,
       next_pay_date: formatISODate(nextPayDate),
     });
   };
@@ -69,7 +117,15 @@ export function PaySettingsModal({
             Fortnightly take-home pay and the date of your next pay.
           </Text>
 
-          <FormField label="Take-home pay (AUD)">
+          <FormField label="Next pay date">
+            <DateField
+              value={nextPayDate}
+              onChange={setNextPayDate}
+              disabled={isSubmitting}
+            />
+          </FormField>
+
+          <FormField label="Take-home pay (AUD)" className="mt-3">
             <Input
               value={payAmount}
               onChangeText={setPayAmount}
@@ -77,27 +133,9 @@ export function PaySettingsModal({
               keyboardType="decimal-pad"
               editable={!isSubmitting}
             />
-          </FormField>
-
-          <FormField label="Next pay date" className="mt-3">
-            <Pressable
-              onPress={() => setShowDatePicker(true)}
-              className="min-h-[32px] justify-center rounded-button border border-border px-2 dark:border-border-dark">
-              <Text>{nextPayDate ? formatDisplayDate(nextPayDate) : 'Select date'}</Text>
-            </Pressable>
-            {showDatePicker ? (
-              <DateTimePicker
-                value={nextPayDate ?? new Date()}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={(_, date) => {
-                  setShowDatePicker(Platform.OS === 'ios');
-                  if (date) {
-                    setNextPayDate(date);
-                  }
-                }}
-              />
-            ) : null}
+            <Text variant="caption" className="mt-1">
+              Optional for now — you can update this anytime.
+            </Text>
           </FormField>
 
           {error ? (

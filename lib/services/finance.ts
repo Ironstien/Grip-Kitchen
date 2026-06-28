@@ -1,4 +1,5 @@
 import { ensureUserProfile, tables } from '@/lib/database';
+import { STARTER_EXPENSES } from '@/lib/finance/starterExpenses';
 import { toError } from '@/lib/errors';
 import { supabase } from '@/lib/supabase';
 import type {
@@ -199,4 +200,36 @@ export async function setRecurringExpenseActive(
   }
 
   return data;
+}
+
+export async function seedStarterExpenses(existing: RecurringExpense[]): Promise<number> {
+  const existingNames = new Set(existing.map((expense) => expense.name));
+  const toCreate = STARTER_EXPENSES.filter((expense) => !existingNames.has(expense.name));
+
+  if (toCreate.length === 0) {
+    return 0;
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error('Not authenticated');
+  }
+
+  await ensureUserProfile();
+
+  const rows = toCreate.map((input) => ({
+    user_id: user.id,
+    ...buildExpensePayload(input),
+  }));
+
+  const { error } = await supabase.from(tables.recurringExpenses).insert(rows);
+
+  if (error) {
+    throw toError(error, 'Could not add starter expenses.');
+  }
+
+  return toCreate.length;
 }

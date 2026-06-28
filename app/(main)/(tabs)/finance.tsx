@@ -6,13 +6,14 @@ import { FinanceOverviewTab } from '@/components/finance/FinanceOverviewTab';
 import { FinanceTabs, type FinanceTab } from '@/components/finance/FinanceTabs';
 import { Heading, Text } from '@/components/ui/Text';
 import { detailPaddingClass, pageHeaderMarginClass, pagePaddingClass } from '@/constants/theme';
-import { useFinance, useFinanceRealtimeSync } from '@/hooks/useFinance';
+import { useFinance, useFinanceRealtimeSync, useFinanceStarterSeed } from '@/hooks/useFinance';
 import { useResponsive } from '@/hooks/useResponsive';
 import { formatErrorMessage } from '@/lib/errors';
 import { useState } from 'react';
 
 export default function FinanceScreen() {
   useFinanceRealtimeSync();
+  useFinanceStarterSeed();
   const { isDesktop } = useResponsive();
   const paddingClass = pagePaddingClass(isDesktop);
   const [activeTab, setActiveTab] = useState<FinanceTab>('overview');

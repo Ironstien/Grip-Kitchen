@@ -9,6 +9,7 @@ import {
   deleteRecurringExpense,
   fetchFinanceSettings,
   fetchRecurringExpenses,
+  seedStarterExpenses,
   setRecurringExpenseActive,
   updateRecurringExpense,
   upsertFinanceSettings,
@@ -56,6 +57,40 @@ export function useFinanceRealtimeSync() {
     return () => {
       void supabase.removeChannel(settingsChannel);
       void supabase.removeChannel(expensesChannel);
+    };
+  }, [queryClient, session]);
+}
+
+/** Seeds household starter bills once per session when they are missing. */
+export function useFinanceStarterSeed() {
+  const { session } = useAuth();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!session) {
+      return;
+    }
+
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const existing = await fetchRecurringExpenses();
+        if (cancelled) {
+          return;
+        }
+
+        const added = await seedStarterExpenses(existing);
+        if (added > 0) {
+          void queryClient.invalidateQueries({ queryKey: queryKeys.recurringExpenses });
+        }
+      } catch {
+        // Non-fatal — user can add expenses manually.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
     };
   }, [queryClient, session]);
 }
