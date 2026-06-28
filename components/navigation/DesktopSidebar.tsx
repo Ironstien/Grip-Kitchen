@@ -56,6 +56,12 @@ export const MAIN_NAV_ITEMS: NavItem[] = [
     matchPaths: ['/(main)/(tabs)/shop', '/shop'],
   },
   {
+    href: '/(main)/(tabs)/finance' as Href,
+    label: 'Finance',
+    icon: 'wallet-outline',
+    matchPaths: ['/(main)/(tabs)/finance', '/finance'],
+  },
+  {
     href: '/(main)/(tabs)/notes' as Href,
     label: 'Notes',
     icon: 'document-text-outline',
@@ -82,6 +88,9 @@ function isActive(pathname: string, item: NavItem) {
   }
   if (item.label === 'Notes') {
     return pathname.includes('/notes');
+  }
+  if (item.label === 'Finance') {
+    return pathname.includes('/finance');
   }
   return item.matchPaths.some(
     (path) => pathname === path || pathname.endsWith(path.replace('/(main)', '')),

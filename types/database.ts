@@ -591,6 +591,80 @@ export type Database = {
           },
         ];
       };
+      finance_settings: {
+        Row: {
+          id: string;
+          pay_amount: number;
+          pay_frequency: 'fortnightly';
+          next_pay_date: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          pay_amount?: number;
+          pay_frequency?: 'fortnightly';
+          next_pay_date?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          pay_amount?: number;
+          pay_frequency?: 'fortnightly';
+          next_pay_date?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      recurring_expenses: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          amount: number;
+          frequency: 'weekly' | 'fortnightly' | 'monthly' | 'yearly';
+          due_day: number | null;
+          due_weekday: number | null;
+          anchor_date: string | null;
+          category: string | null;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          amount: number;
+          frequency: 'weekly' | 'fortnightly' | 'monthly' | 'yearly';
+          due_day?: number | null;
+          due_weekday?: number | null;
+          anchor_date?: string | null;
+          category?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          amount?: number;
+          frequency?: 'weekly' | 'fortnightly' | 'monthly' | 'yearly';
+          due_day?: number | null;
+          due_weekday?: number | null;
+          anchor_date?: string | null;
+          category?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'recurring_expenses_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -627,3 +701,6 @@ export type ShoppingListItem = Tables<'shopping_list'>;
 export type WasteLogEntry = Tables<'waste_log'>;
 export type BarcodeCacheEntry = Tables<'barcode_cache'>;
 export type Note = Tables<'notes'>;
+export type FinanceSettings = Tables<'finance_settings'>;
+export type RecurringExpense = Tables<'recurring_expenses'>;
+export type ExpenseFrequency = RecurringExpense['frequency'];

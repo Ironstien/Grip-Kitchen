@@ -29,6 +29,8 @@ export const tables = {
   wasteLog: 'waste_log',
   barcodeCache: 'barcode_cache',
   notes: 'notes',
+  financeSettings: 'finance_settings',
+  recurringExpenses: 'recurring_expenses',
 } as const;
 
 export async function getCurrentUserProfile(): Promise<UserProfile | null> {

@@ -12,4 +12,6 @@ export const queryKeys = {
   recipes: (filters?: Record<string, unknown>) => ['recipes', filters ?? {}] as const,
   recipe: (id: string) => ['recipes', id] as const,
   notes: ['notes'] as const,
+  financeSettings: ['financeSettings'] as const,
+  recurringExpenses: ['recurringExpenses'] as const,
 };
